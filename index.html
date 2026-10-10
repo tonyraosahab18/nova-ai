@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NOVA AI | Powered by RaoSahab & Team</title>
+    <title>NOVA AI | Powered by RaoSahab</title>
     <style>
         :root {
             --bg-dark: #05010b;
             --neon-purple: #9d4edd;
             --neon-glow: #c77dff;
-            --glass-card: rgba(15, 5, 25, 0.4);
-            --glass-border: rgba(199, 125, 255, 0.18);
+            --glass-card: rgba(10, 3, 20, 0.2);
+            --glass-border: rgba(199, 125, 255, 0.12);
             --text-main: #f8f9fa;
         }
 
@@ -49,7 +49,7 @@
             inset: 0;
             background: url('file_00000000519482109897efcb371a5a26.png') no-repeat center center;
             background-size: cover;
-            opacity: 0.65;
+            opacity: 0.7;
             z-index: 1;
             pointer-events: none;
             filter: contrast(1.15) brightness(0.95);
@@ -58,7 +58,7 @@
         .overlay-gradient {
             position: absolute;
             inset: 0;
-            background: linear-gradient(180deg, rgba(5, 1, 11, 0.6) 0%, rgba(5, 1, 11, 0.15) 35%, rgba(5, 1, 11, 0.75) 85%, #05010b 100%);
+            background: linear-gradient(180deg, rgba(5, 1, 11, 0.55) 0%, rgba(5, 1, 11, 0.1) 35%, rgba(5, 1, 11, 0.7) 85%, #05010b 100%);
             z-index: 2;
             pointer-events: none;
         }
@@ -93,22 +93,34 @@
             letter-spacing: 0.5px;
         }
 
-        .new-chat-btn {
-            background: rgba(30, 15, 50, 0.5);
+        .header-buttons {
+            display: flex;
+            gap: 6px;
+        }
+
+        .action-chip {
+            background: rgba(30, 15, 50, 0.4);
             border: 1px solid var(--glass-border);
             color: #e0aaff;
-            padding: 7px 14px;
+            padding: 6px 12px;
             border-radius: 20px;
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             font-weight: 600;
             cursor: pointer;
             backdrop-filter: blur(8px);
             transition: all 0.2s ease;
         }
 
-        .new-chat-btn:active {
+        .action-chip:active {
             transform: scale(0.95);
             background: rgba(157, 78, 221, 0.3);
+        }
+
+        #installBtn {
+            display: none; /* Shows automatically if PWA install is supported */
+            background: linear-gradient(135deg, #7b2cbf, #ff007f);
+            color: #ffffff;
+            border: none;
         }
 
         /* Chat Stream */
@@ -127,15 +139,16 @@
             display: none;
         }
 
+        /* Fully Transparent Glass Bubbles to show clear mascot */
         .msg-bubble {
             max-width: 85%;
             padding: 13px 17px;
             border-radius: 18px;
             font-size: 0.9rem;
             line-height: 1.5;
-            backdrop-filter: blur(12px);
+            backdrop-filter: blur(4px);
             word-wrap: break-word;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
         }
 
         .msg-bubble.ai {
@@ -153,8 +166,8 @@
         }
 
         .msg-bubble.user {
-            background: linear-gradient(135deg, rgba(123, 44, 191, 0.75), rgba(157, 78, 221, 0.85));
-            border: 1px solid rgba(224, 170, 255, 0.3);
+            background: rgba(123, 44, 191, 0.35);
+            border: 1px solid rgba(224, 170, 255, 0.2);
             color: #ffffff;
             align-self: flex-end;
             border-top-right-radius: 4px;
@@ -171,14 +184,14 @@
         }
 
         .input-pill-box {
-            background: rgba(20, 8, 35, 0.6);
-            border: 1.5px solid rgba(199, 125, 255, 0.3);
+            background: rgba(15, 5, 25, 0.45);
+            border: 1.5px solid rgba(199, 125, 255, 0.25);
             border-radius: 30px;
             padding: 6px 8px 6px 18px;
             display: flex;
             align-items: center;
-            backdrop-filter: blur(16px);
-            box-shadow: 0 0 20px rgba(157, 78, 221, 0.2);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 0 20px rgba(157, 78, 221, 0.15);
         }
 
         .text-input {
@@ -192,7 +205,7 @@
         }
 
         .text-input::placeholder {
-            color: rgba(224, 170, 255, 0.45);
+            color: rgba(224, 170, 255, 0.4);
         }
 
         .action-send-btn {
@@ -241,12 +254,15 @@
                 <span class="brand-name">NOVA AI</span>
                 <span class="status-tag">System Online. Ready for Chaos. ⚡</span>
             </div>
-            <button class="new-chat-btn" id="clearBtn">+ New Chat</button>
+            <div class="header-buttons">
+                <button class="action-chip" id="installBtn">📲 Install</button>
+                <button class="action-chip" id="clearBtn">+ New Chat</button>
+            </div>
         </div>
 
         <div class="chat-stream" id="chatStream">
             <div class="msg-bubble ai">
-                System initialized. Main NOVA hoon—RaoSahab & Team dwara develop ki gayi advanced AI companion. Bataiye, aaj kis query ya task par kaam karna hai? ⚡
+                System online. RaoSahab ki NOVA active hai. Jyada bakchodi ki toh seedha roast khayega, baaki agar dhang ki baat karni hai toh bol, kya scene hai? ⚡
             </div>
         </div>
 
@@ -256,7 +272,7 @@
                 <button class="action-send-btn" id="sendBtn">Send ➔</button>
             </div>
             <div class="footer-branding">
-                Powered by RaoSahab & Team | Explore <a href="https://chaos-exe.vercel.app" target="_blank">CHAOS.EXE</a>
+                Powered by RaoSahab | Explore <a href="https://chaos-exe.vercel.app" target="_blank">CHAOS.EXE</a>
             </div>
         </div>
     </div>
@@ -266,8 +282,28 @@
         const userInput = document.getElementById('userInput');
         const sendBtn = document.getElementById('sendBtn');
         const clearBtn = document.getElementById('clearBtn');
+        const installBtn = document.getElementById('installBtn');
 
         let messageHistory = [];
+        let deferredPrompt;
+
+        // PWA Install Prompt Handler
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.style.display = 'block';
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    installBtn.style.display = 'none';
+                }
+                deferredPrompt = null;
+            }
+        });
 
         async function handleSendMessage() {
             const text = userInput.value.trim();
@@ -346,7 +382,7 @@
             messageHistory = [];
             chatStream.innerHTML = `
                 <div class="msg-bubble ai">
-                    Session reset. RaoSahab & Team ki NOVA AI ready hai. Next command dijiye! ⚡
+                    Session wiped. RaoSahab ki NOVA wapas online hai. Bata, ab kya scene hai? ⚡
                 </div>
             `;
         });
