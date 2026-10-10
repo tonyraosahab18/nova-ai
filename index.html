@@ -6,15 +6,15 @@
     <title>NOVA AI | Powered by RaoSahab</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-dark: #05010b;
             --neon-purple: #9d4edd;
             --neon-glow: #c77dff;
-            --glass-card: rgba(10, 3, 20, 0.25);
-            --glass-border: rgba(199, 125, 255, 0.15);
-            --text-main: #f8f9fa;
+            --glass-card: rgba(15, 5, 28, 0.45);
+            --glass-border: rgba(199, 125, 255, 0.25);
+            --text-main: #ffffff;
         }
 
         * {
@@ -54,16 +54,16 @@
             inset: 0;
             background: url('file_00000000519482109897efcb371a5a26.png') no-repeat center center;
             background-size: cover;
-            opacity: 0.72;
+            opacity: 0.75;
             z-index: 1;
             pointer-events: none;
-            filter: contrast(1.18) brightness(0.92);
+            filter: contrast(1.2) brightness(0.95);
         }
 
         .overlay-gradient {
             position: absolute;
             inset: 0;
-            background: linear-gradient(180deg, rgba(5, 1, 11, 0.6) 0%, rgba(5, 1, 11, 0.12) 35%, rgba(5, 1, 11, 0.75) 85%, #05010b 100%);
+            background: linear-gradient(180deg, rgba(5, 1, 11, 0.65) 0%, rgba(5, 1, 11, 0.15) 35%, rgba(5, 1, 11, 0.8) 85%, #05010b 100%);
             z-index: 2;
             pointer-events: none;
         }
@@ -75,8 +75,8 @@
             justify-content: space-between;
             align-items: center;
             z-index: 10;
-            border-bottom: 1px solid rgba(199, 125, 255, 0.08);
-            background: rgba(5, 1, 11, 0.4);
+            border-bottom: 1px solid rgba(199, 125, 255, 0.12);
+            background: rgba(5, 1, 11, 0.6);
             backdrop-filter: blur(10px);
         }
 
@@ -87,17 +87,18 @@
         }
 
         .menu-toggle-btn {
-            background: rgba(30, 15, 50, 0.5);
+            background: rgba(40, 20, 65, 0.7);
             border: 1px solid var(--glass-border);
-            color: #e0aaff;
-            width: 32px;
-            height: 32px;
+            color: #f1e6ff;
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 1rem;
+            font-weight: 700;
             backdrop-filter: blur(8px);
         }
 
@@ -136,10 +137,9 @@
         }
 
         .status-tag {
-            font-size: 0.68rem;
+            font-size: 0.7rem;
             color: var(--neon-glow);
-            opacity: 0.85;
-            font-weight: 500;
+            font-weight: 600;
             letter-spacing: 0.02em;
             margin-top: 1px;
         }
@@ -151,13 +151,13 @@
         }
 
         .action-chip {
-            background: rgba(30, 15, 50, 0.5);
+            background: rgba(40, 20, 65, 0.7);
             border: 1px solid var(--glass-border);
-            color: #e0aaff;
+            color: #f1e6ff;
             padding: 6px 12px;
             border-radius: 20px;
-            font-size: 0.72rem;
-            font-weight: 600;
+            font-size: 0.75rem;
+            font-weight: 700;
             cursor: pointer;
             backdrop-filter: blur(8px);
             transition: all 0.2s ease;
@@ -165,7 +165,7 @@
 
         .action-chip:active {
             transform: scale(0.95);
-            background: rgba(157, 78, 221, 0.3);
+            background: rgba(157, 78, 221, 0.4);
         }
 
         #installBtn {
@@ -180,7 +180,7 @@
             display: none;
             align-items: center;
             gap: 6px;
-            background: rgba(30, 15, 50, 0.7);
+            background: rgba(40, 20, 65, 0.8);
             border: 1px solid var(--glass-border);
             padding: 3px 10px 3px 3px;
             border-radius: 20px;
@@ -197,10 +197,10 @@
         .user-signout {
             background: transparent;
             border: none;
-            color: #ff4d6d;
-            font-size: 0.65rem;
+            color: #ff6b8b;
+            font-size: 0.68rem;
             cursor: pointer;
-            font-weight: 600;
+            font-weight: 700;
         }
 
         /* Sliding History Sidebar Drawer */
@@ -211,7 +211,7 @@
             width: 80%;
             max-width: 320px;
             height: 100dvh;
-            background: rgba(8, 2, 18, 0.96);
+            background: rgba(10, 3, 20, 0.98);
             backdrop-filter: blur(20px);
             border-right: 1px solid var(--glass-border);
             z-index: 100;
@@ -230,13 +230,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(199, 125, 255, 0.1);
+            border-bottom: 1px solid rgba(199, 125, 255, 0.15);
         }
 
         .sidebar-title {
-            font-size: 0.95rem;
+            font-size: 1rem;
             font-weight: 700;
-            color: #e0aaff;
+            color: #f1e6ff;
             letter-spacing: 0.03em;
         }
 
@@ -244,7 +244,8 @@
             background: transparent;
             border: none;
             color: #c77dff;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
+            font-weight: 700;
             cursor: pointer;
         }
 
@@ -255,11 +256,11 @@
             border: none;
             padding: 11px;
             border-radius: 12px;
-            font-size: 0.82rem;
-            font-weight: 600;
+            font-size: 0.85rem;
+            font-weight: 700;
             cursor: pointer;
             text-align: center;
-            box-shadow: 0 4px 15px rgba(157, 78, 221, 0.3);
+            box-shadow: 0 4px 15px rgba(157, 78, 221, 0.35);
         }
 
         .sidebar-history-list {
@@ -273,12 +274,12 @@
 
         .history-item {
             padding: 12px 14px;
-            background: rgba(20, 8, 35, 0.6);
-            border: 1px solid rgba(199, 125, 255, 0.1);
+            background: rgba(30, 12, 50, 0.7);
+            border: 1px solid rgba(199, 125, 255, 0.15);
             border-radius: 12px;
-            font-size: 0.84rem;
-            font-weight: 500;
-            color: #f1e6ff;
+            font-size: 0.86rem;
+            font-weight: 600;
+            color: #ffffff;
             cursor: pointer;
             white-space: nowrap;
             overflow: hidden;
@@ -287,14 +288,14 @@
         }
 
         .history-item:hover, .history-item.active {
-            background: rgba(157, 78, 221, 0.25);
+            background: rgba(157, 78, 221, 0.35);
             border-color: var(--neon-glow);
         }
 
         .sidebar-backdrop {
             position: absolute;
             inset: 0;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.65);
             backdrop-filter: blur(4px);
             z-index: 90;
             display: none;
@@ -324,31 +325,31 @@
             max-width: 86%;
             padding: 14px 18px;
             border-radius: 18px;
-            font-size: 0.92rem;
-            line-height: 1.55;
-            font-weight: 400;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            font-weight: 600;
             backdrop-filter: blur(6px);
             word-wrap: break-word;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
 
         .msg-bubble.ai {
             background: var(--glass-card);
             border: 1px solid var(--glass-border);
-            color: #f1e6ff;
+            color: #ffffff;
             align-self: flex-start;
             border-top-left-radius: 4px;
         }
 
         .msg-bubble.ai a {
-            color: #ff4d6d;
-            font-weight: 600;
+            color: #ff6b8b;
+            font-weight: 700;
             text-decoration: underline;
         }
 
         .msg-bubble.user {
-            background: rgba(123, 44, 191, 0.35);
-            border: 1px solid rgba(224, 170, 255, 0.2);
+            background: rgba(123, 44, 191, 0.5);
+            border: 1px solid rgba(224, 170, 255, 0.3);
             color: #ffffff;
             align-self: flex-end;
             border-top-right-radius: 4px;
@@ -359,7 +360,7 @@
             border-radius: 12px;
             margin-bottom: 8px;
             display: block;
-            border: 1px solid rgba(199, 125, 255, 0.3);
+            border: 1px solid rgba(199, 125, 255, 0.4);
         }
 
         /* Preview container for selected images */
@@ -415,14 +416,14 @@
         }
 
         .input-pill-box {
-            background: rgba(15, 5, 25, 0.5);
-            border: 1.5px solid rgba(199, 125, 255, 0.25);
+            background: rgba(25, 10, 40, 0.65);
+            border: 1.5px solid rgba(199, 125, 255, 0.35);
             border-radius: 30px;
             padding: 6px 8px 6px 14px;
             display: flex;
             align-items: center;
             backdrop-filter: blur(14px);
-            box-shadow: 0 0 20px rgba(157, 78, 221, 0.15);
+            box-shadow: 0 0 20px rgba(157, 78, 221, 0.2);
         }
 
         .text-input {
@@ -430,14 +431,14 @@
             background: transparent;
             border: none;
             color: #ffffff;
-            font-size: 0.94rem;
-            font-weight: 400;
+            font-size: 0.95rem;
+            font-weight: 600;
             outline: none;
             padding: 8px 4px;
         }
 
         .text-input::placeholder {
-            color: rgba(224, 170, 255, 0.4);
+            color: rgba(224, 170, 255, 0.5);
         }
 
         .icon-btn {
@@ -470,7 +471,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 12px rgba(199, 125, 255, 0.4);
+            box-shadow: 0 0 12px rgba(199, 125, 255, 0.5);
             transition: transform 0.15s ease;
             margin-left: 4px;
             flex-shrink: 0;
@@ -482,17 +483,17 @@
 
         .footer-branding {
             text-align: center;
-            font-size: 0.68rem;
-            color: rgba(224, 170, 255, 0.4);
+            font-size: 0.7rem;
+            color: rgba(224, 170, 255, 0.5);
             letter-spacing: 0.04em;
-            font-weight: 500;
+            font-weight: 600;
             margin-top: 2px;
         }
 
         .footer-branding a {
             color: #c77dff;
             text-decoration: none;
-            font-weight: 600;
+            font-weight: 700;
         }
     </style>
 </head>
@@ -649,7 +650,7 @@
             
             const sessionKeys = Object.keys(sessions);
             if (sessionKeys.length === 0) {
-                sidebarHistoryList.innerHTML = '<div style="color: rgba(224,170,255,0.4); font-size: 0.78rem; text-align: center; margin-top: 20px;">Koi history nahi hai abhi.</div>';
+                sidebarHistoryList.innerHTML = '<div style="color: rgba(224,170,255,0.5); font-size: 0.8rem; text-align: center; margin-top: 20px; font-weight: 600;">Koi history nahi hai abhi.</div>';
                 return;
             }
 
