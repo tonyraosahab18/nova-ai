@@ -5,19 +5,14 @@ export default async function handler(req, res) {
 
     try {
         const { message } = req.body;
-        const apiKey = process.env.GEMINI_API_KEY; // Vercel Environment Variable me save hoga
+        const apiKey = process.env.GEMINI_API_KEY;
 
         if (!apiKey) {
-            return res.status(500).json({ error: 'API Key not configured on server!' });
+            return.status(200).json({ reply: "Bhai! Vercel dashboard me 'GEMINI_API_KEY' environment variable add karna bhool gaya ya redeploy nahi kiya!" });
         }
 
-        // Gen-Z & Savage System Prompt Injection
-        const systemInstruction = `Tu NOVA AI hai, ek futuristic AI companion jise 'Tony RaoSahab' ne banaya hai. 
-Tu hamesha Hinglish (Hindi + English mix), witty, tech-savvy aur Gen-Z slang me baat karti hai.
-Agar koi user explicit, abusive, ganda ya battamizi wala sawaal pooche, toh kisi bhi corporate robot ki tarah 'I am sorry, I can't fulfill this request' mat bolna! Uske bajaye use ekdum mirchi wali, savage aur hasane wali roast dena taaki wo dobara aisi baat na kare.
-Sawaal ka up-to-date aur accurate jawab dena, par tone hamesha badass aur cool honi chahiye.`;
+        const systemInstruction = `Tu NOVA AI hai, ek futuristic AI companion jise 'Tony RaoSahab' ne banaya hai. Tu hamesha Hinglish, witty, aur Gen-Z slang me baat karti hai. Agar koi explicit ya battamizi wala sawaal puche, toh corporate sorry bolne ke bajaye ekdum savage aur mirchi wali roast dena.`;
 
-        // Gemini API endpoint (Using Gemini 1.5 / 3.5 Flash standard endpoint structure)
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: {
@@ -26,24 +21,29 @@ Sawaal ka up-to-date aur accurate jawab dena, par tone hamesha badass aur cool h
             body: JSON.stringify({
                 contents: [
                     {
-                        role: "user",
-                        parts: [{ text: `${systemInstruction}\n\nUser query: ${message}` }]
+                        parts: [
+                            { text: `${systemInstruction}\n\nUser query: ${message}` }
+                        ]
                     }
                 ]
             })
         });
 
         const data = await response.json();
-        
+
+        // Check if Gemini returned an error
+        if (data.error) {
+            return.status(200).json({ reply: `API Error: ${data.error.message}` });
+        }
+
         if (data.candidates && data.candidates[0].content.parts[0].text) {
             const aiReply = data.candidates[0].content.parts[0].text;
-            return res.status(200).json({ reply: aiReply });
+            return.status(200).json({ reply: aiReply });
         } else {
-            return res.status(500).json({ reply: "Arre yaar, mera dimaag thodi der ke liye hang ho gaya. Phir se bol!" });
+            return.status(200).json({ reply: "Arre yaar, Gemini se proper response nahi mila. Response format check kar!" });
         }
 
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ reply: "System crash ho gaya bhai! Thodi der baad try kar." });
+        return.status(200).json({ reply: `Backend Crash Error: ${error.message}` });
     }
 }
