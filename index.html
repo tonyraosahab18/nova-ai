@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOVA AI ✦ Photorealistic Studio</title>
+    <title>NOVA AI ✦ Chaos.exe</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -21,97 +21,64 @@
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-darkBg text-gray-100 font-sans h-screen flex flex-col overflow-hidden">
+<body class="bg-darkBg text-gray-100 font-sans h-screen flex flex-col justify-between overflow-hidden">
 
     <!-- Top Navigation Bar -->
-    <header class="flex justify-between items-center px-6 py-4 border-b border-gray-800 bg-panelBg/50 backdrop-blur-md">
+    <header class="flex justify-between items-center px-6 py-3 border-b border-gray-800 bg-panelBg/80 backdrop-blur-md">
         <div class="flex items-center space-x-2">
-            <span class="text-accent text-xl">✦</span>
-            <h1 class="text-lg font-bold tracking-wide">NOVA AI</h1>
+            <span class="text-accent text-lg animate-pulse">✦</span>
+            <div>
+                <h1 class="text-sm font-bold tracking-wide">NOVA AI <span class="w-2 h-2 inline-block bg-green-500 rounded-full ml-1"></span></h1>
+                <p class="text-[10px] text-gray-400">System Online. Ready for Chaos. ⚡</p>
+            </div>
         </div>
         
-        <div class="flex items-center space-x-4">
-            <div id="userInfo" class="hidden flex items-center space-x-3">
-                <img id="userAvatar" src="" alt="User" class="w-8 h-8 rounded-full border border-gray-700">
-                <span id="userName" class="text-sm font-medium hidden sm:inline"></span>
-                <button onclick="handleSignOut()" class="text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-lg transition">Sign Out</button>
+        <div class="flex items-center space-x-3">
+            <button onclick="startNewChat()" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg transition border border-gray-700">+ New Chat</button>
+            <div id="userInfo" class="hidden flex items-center space-x-2">
+                <img id="userAvatar" src="" alt="User" class="w-7 h-7 rounded-full border border-gray-700">
+                <button onclick="handleSignOut()" class="text-[10px] bg-red-500/10 text-red-400 hover:bg-red-500/20 px-2 py-1 rounded">Sign Out</button>
             </div>
-            <button id="signInBtn" onclick="handleGoogleSignIn()" class="flex items-center space-x-2 bg-white text-gray-900 px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-gray-100 transition shadow-sm">
+            <button id="signInBtn" onclick="handleGoogleSignIn()" class="flex items-center space-x-1.5 bg-white text-gray-900 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-100 transition shadow-sm">
                 <i class="fab fa-google"></i>
                 <span>Sign In</span>
             </button>
         </div>
     </header>
 
-    <!-- Main Workspace -->
-    <main class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-        
-        <!-- Sidebar: History & Saved Prompts -->
-        <aside class="w-full md:w-80 border-r border-gray-800 bg-panelBg/30 flex flex-col hidden md:flex">
-            <div class="p-4 border-b border-gray-800 flex justify-between items-center">
-                <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Generation History</span>
-                <button onclick="clearHistory()" class="text-gray-500 hover:text-red-400 text-xs"><i class="fas fa-trash-alt"></i></button>
+    <!-- Chat Message Container -->
+    <main id="chatContainer" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 max-w-4xl w-full mx-auto">
+        <!-- Initial Greeting Bubble -->
+        <div class="flex items-start space-x-3">
+            <div class="w-8 h-8 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center text-accent text-xs">✦</div>
+            <div class="bg-panelBg border border-gray-800 p-4 rounded-2xl max-w-xl text-sm leading-relaxed shadow-lg">
+                Ready hai tere liye. Batao, aaj kya tod-phod karni hai ya koi naya image bhej ke roast karwana hai? 😎
             </div>
-            <div id="historyList" class="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
-                <!-- Dynamic History Items -->
-            </div>
-        </aside>
-
-        <!-- Central Studio Workspace -->
-        <section class="flex-1 flex flex-col justify-between p-4 md:p-8 overflow-y-auto">
-            
-            <!-- Output Display Area -->
-            <div id="outputContainer" class="flex-1 flex items-center justify-center p-4">
-                <div id="welcomeState" class="text-center space-y-3 max-w-md">
-                    <span class="text-4xl text-accent animate-pulse">✦</span>
-                    <h2 class="text-xl font-semibold">What will you create today?</h2>
-                    <p class="text-sm text-gray-400">Powered by FLUX.1-schnell for breathtaking photorealism.</p>
-                </div>
-
-                <!-- Generated Result Card -->
-                <div id="resultCard" class="hidden relative group max-w-2xl w-full bg-panelBg rounded-2xl border border-gray-800 overflow-hidden shadow-2xl">
-                    <img id="generatedImage" src="" alt="AI Output" class="w-full h-auto object-cover max-h-[60vh]">
-                    
-                    <!-- ChatGPT-Style Floating Action Bar -->
-                    <div class="absolute bottom-4 right-4 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition duration-200 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 shadow-lg">
-                        <button onclick="downloadImage()" class="text-gray-200 hover:text-white flex items-center space-x-1.5 text-xs font-medium px-2 py-1 transition">
-                            <i class="fas fa-download"></i>
-                            <span>Download</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Loading State -->
-                <div id="loadingState" class="hidden flex flex-col items-center space-y-3">
-                    <div class="w-10 h-10 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
-                    <p class="text-sm text-gray-400">Crafting high-resolution realism (~15-30s)...</p>
-                </div>
-            </div>
-
-            <!-- Prompt Input Bar -->
-            <div class="max-w-3xl w-full mx-auto mt-4">
-                <div class="relative bg-panelBg border border-gray-800 rounded-2xl p-2 shadow-inner flex items-center">
-                    <textarea id="promptInput" rows="1" placeholder="Imagine something extraordinary..." class="w-full bg-transparent text-gray-100 placeholder-gray-500 text-sm px-3 py-2 focus:outline-none resize-none max-h-32"></textarea>
-                    <button onclick="generateImage()" id="generateBtn" class="bg-accent hover:bg-accent/90 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition flex items-center space-x-1.5 ml-2">
-                        <span>Generate</span>
-                        <i class="fas fa-arrow-up"></i>
-                    </button>
-                </div>
-                <div class="flex justify-between items-center px-2 mt-2 text-xs text-gray-500">
-                    <span>Model: FLUX.1-schnell</span>
-                    <span>No Watermark ✦ Pure Quality</span>
-                </div>
-            </div>
-
-        </section>
+        </div>
     </main>
 
-    <!-- Firebase & App Script Logic -->
+    <!-- Bottom Input Bar -->
+    <footer class="p-4 bg-darkBg border-t border-gray-800/60">
+        <div class="max-w-3xl mx-auto">
+            <div class="relative bg-panelBg border border-gray-800 rounded-2xl p-2 shadow-inner flex items-center">
+                <button class="text-gray-400 hover:text-gray-200 px-3 py-2 text-sm"><i class="fas fa-paperclip"></i></button>
+                <button class="text-gray-400 hover:text-gray-200 px-2 py-2 text-sm"><i class="fas fa-microphone"></i></button>
+                <textarea id="promptInput" rows="1" placeholder="Type prompt or command..." class="w-full bg-transparent text-gray-100 placeholder-gray-500 text-sm px-2 py-2 focus:outline-none resize-none max-h-32"></textarea>
+                <button onclick="handleUserSubmit()" id="generateBtn" class="bg-accent hover:bg-accent/90 text-white p-2.5 rounded-xl text-sm transition flex items-center justify-center ml-2 shadow-md">
+                    <i class="fas fa-arrow-up"></i>
+                </button>
+            </div>
+            <div class="text-center mt-2 text-[10px] text-gray-500">
+                Powered by RaoSahab | Explore CHAOS.EXE
+            </div>
+        </div>
+    </footer>
+
+    <!-- Firebase & Chat Logic Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        // Your Firebase Config Keys
         const firebaseConfig = {
           apiKey: "AIzaSyBFZgeMPYIdpTR92DUkVFz-7h1X2xOdH3A",
           authDomain: "nova-ai-57072.firebaseapp.com",
@@ -126,15 +93,12 @@
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
 
-        // Hugging Face API Key Integrated
-        const HF_API_KEY = "Hf_LGGSyVZhVuPbatGfFaTlBySWnAduQnbTQS"; 
-        const MODEL_URL = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell";
-
         window.handleGoogleSignIn = async () => {
             try {
                 await signInWithPopup(auth, provider);
             } catch (error) {
                 console.error("Login Error:", error);
+                alert("Google Sign-In failed. Make sure your Vercel domain is added in Firebase Console > Authentication > Authorized domains.");
             }
         };
 
@@ -149,104 +113,88 @@
                 signInBtn.classList.add('hidden');
                 userInfo.classList.remove('hidden');
                 document.getElementById('userAvatar').src = user.photoURL;
-                document.getElementById('userName').innerText = user.displayName.split(' ')[0];
-                loadUserHistory();
             } else {
                 signInBtn.classList.remove('hidden');
                 userInfo.classList.add('hidden');
             }
         });
 
-        let currentImageUrl = "";
+        window.startNewChat = () => {
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.innerHTML = `
+                <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center text-accent text-xs">✦</div>
+                    <div class="bg-panelBg border border-gray-800 p-4 rounded-2xl max-w-xl text-sm leading-relaxed shadow-lg">
+                        Naya chat shuru ho gaya hai. Batao kya karna hai? ⚡
+                    </div>
+                </div>
+            `;
+        }
 
-        window.generateImage = async () => {
-            const prompt = document.getElementById('promptInput').value.trim();
+        window.handleUserSubmit = async () => {
+            const input = document.getElementById('promptInput');
+            const prompt = input.value.trim();
             if (!prompt) return;
 
-            document.getElementById('welcomeState').classList.add('hidden');
-            document.getElementById('resultCard').classList.add('hidden');
-            document.getElementById('loadingState').classList.remove('hidden');
-            document.getElementById('generateBtn').disabled = true;
+            const chatContainer = document.getElementById('chatContainer');
 
-            try {
-                const response = await fetch(MODEL_URL, {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${HF_API_KEY}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ inputs: prompt })
-                });
+            // Append User Message
+            const userMsgDiv = document.createElement('div');
+            userMsgDiv.className = "flex justify-end";
+            userMsgDiv.innerHTML = `
+                <div class="bg-accent text-white p-3.5 rounded-2xl max-w-xl text-sm shadow-md">
+                    ${prompt}
+                </div>
+            `;
+            chatContainer.appendChild(userMsgDiv);
+            input.value = '';
+            chatContainer.scrollTop = chatContainer.scrollHeight;
 
-                if (!response.ok) throw new Error("Image generation failed. Try again.");
+            // Append Loading / AI Response Bubble
+            const aiMsgId = 'ai-msg-' + Date.now();
+            const aiMsgDiv = document.createElement('div');
+            aiMsgDiv.className = "flex items-start space-x-3";
+            aiMsgDiv.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center text-accent text-xs">✦</div>
+                <div id="${aiMsgId}" class="bg-panelBg border border-gray-800 p-4 rounded-2xl max-w-xl text-sm leading-relaxed shadow-lg space-y-3">
+                    <div class="flex items-center space-x-2 text-gray-400">
+                        <div class="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+                        <span>Crafting high-quality image...</span>
+                    </div>
+                </div>
+            `;
+            chatContainer.appendChild(aiMsgDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
 
-                const blob = await response.blob();
-                currentImageUrl = URL.createObjectURL(blob);
+            // Generate Image URL (Using reliable fast endpoint to avoid browser CORS issues)
+            const encodedPrompt = encodeURIComponent(prompt);
+            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?nologo=true&private=true&enhance=true`;
 
-                document.getElementById('generatedImage').src = currentImageUrl;
-                document.getElementById('loadingState').classList.add('hidden');
-                document.getElementById('resultCard').classList.remove('hidden');
-
-                saveToHistory(prompt, currentImageUrl);
-            } catch (error) {
-                console.error(error);
-                alert("Error generating image. Server might be warming up, try again in 10 seconds.");
-                document.getElementById('loadingState').classList.add('hidden');
-                document.getElementById('welcomeState').classList.remove('hidden');
-            } finally {
-                document.getElementById('generateBtn').disabled = false;
-            }
-        };
-
-        window.downloadImage = () => {
-            if (!currentImageUrl) return;
-            const a = document.createElement('a');
-            a.href = currentImageUrl;
-            a.download = `nova-ai-${Date.now()}.webp`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        };
-
-        function saveToHistory(prompt, imgUrl) {
-            let history = JSON.parse(localStorage.getItem('nova_history') || '[]');
-            history.unshift({ prompt, imgUrl, time: Date.now() });
-            localStorage.setItem('nova_history', JSON.stringify(history));
-            renderHistory();
-        }
-
-        function loadUserHistory() {
-            renderHistory();
-        }
-
-        function renderHistory() {
-            const historyList = document.getElementById('historyList');
-            let history = JSON.parse(localStorage.getItem('nova_history') || '[]');
-            historyList.innerHTML = '';
-            
-            history.forEach((item) => {
-                const div = document.createElement('div');
-                div.className = "p-2.5 rounded-xl hover:bg-gray-800/50 cursor-pointer transition flex items-center space-x-3 truncate";
-                div.innerHTML = `
-                    <img src="${item.imgUrl}" class="w-10 h-10 rounded-lg object-cover">
-                    <span class="text-xs text-gray-300 truncate">${item.prompt}</span>
+            // Preload image to ensure it's ready
+            const img = new Image();
+            img.src = imageUrl;
+            img.onload = () => {
+                const bubble = document.getElementById(aiMsgId);
+                bubble.innerHTML = `
+                    <p class="text-gray-200">Le bhai, teri demand par image ready kar di hai! 🎨</p>
+                    <div class="relative group rounded-xl overflow-hidden border border-gray-800">
+                        <img src="${imageUrl}" class="w-full h-auto object-cover">
+                        <div class="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition bg-black/70 backdrop-blur px-3 py-1.5 rounded-lg">
+                            <a href="${imageUrl}" download="nova-ai.jpg" target="_blank" class="text-xs text-white flex items-center space-x-1">
+                                <i class="fas fa-download"></i>
+                                <span>Download</span>
+                            </a>
+                        </div>
+                    </div>
                 `;
-                div.onclick = () => {
-                    currentImageUrl = item.imgUrl;
-                    document.getElementById('welcomeState').classList.add('hidden');
-                    document.getElementById('resultCard').classList.remove('hidden');
-                    document.getElementById('generatedImage').src = item.imgUrl;
-                };
-                historyList.appendChild(div);
-            });
-        }
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            };
 
-        window.clearHistory = () => {
-            localStorage.removeItem('nova_history');
-            renderHistory();
-        }
-
-        renderHistory();
+            img.onerror = () => {
+                const bubble = document.getElementById(aiMsgId);
+                bubble.innerHTML = `<span class="text-red-400">Image generation failed. Please try again.</span>`;
+            };
+        };
     </script>
 </body>
 </html>
