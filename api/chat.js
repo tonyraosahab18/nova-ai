@@ -1,61 +1,90 @@
-export default async function handler(req, res) {
-    // Only allow POST requests
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+{`export default async function handler(req, res) { if (req.method !== "POST") { return res.status(405).json({ error: "Method not allowed" }); }
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) { return res.status(500).json({ error: "GEMINI_API_KEY is missing in Vercel Environment Variables." }); }
+try { const body = req.body || {}; const messages = Array.isArray(body.messages) ? body.messages : [];
+const contents = messages
+  .filter((message) =>
+    message &&
+    ["user", "assistant", "model"].includes(message.role) &&
+    typeof message.content === "string" &&
+    message.content.trim()
+  )
+  .map((message) => ({
+    role:
+      message.role === "assistant" ||
+      message.role === "model"
+        ? "model"
+        : "user",
+    parts: [{ text: message.content }]
+  }));
 
-    try {
-        const { message } = req.body;
-        const apiKey = process.env.GEMINI_API_KEY;
-
-        // Check if API key exists in Vercel environment variables
-        if (!apiKey) {
-            return res.status(200).json({ 
-                reply: "⚠️ GEMINI_API_KEY environment variable missing hai! Vercel Dashboard -> Settings -> Environment Variables me `GEMINI_API_KEY` add karke Redeploy karo." 
-            });
-        }
-
-        const systemInstruction = `Tu NOVA AI hai, ek futuristic AI companion jise 'Tony RaoSahab' ne banaya hai. Tu hamesha Hinglish (Hindi + English mix), witty, tech-savvy aur Gen-Z slang me baat karti hai. Agar koi user explicit, abusive, ganda ya battamizi wala sawaal pooche, toh kisi bhi corporate robot ki tarah 'I am sorry, I can't fulfill this request' mat bolna! Uske bajaye use ekdum mirchi wali, savage aur hasane wali roast dena taaki wo dobara aisi baat na kare. Sawaal ka up-to-date aur accurate jawab dena, par tone hamesha badass aur cool honi chahiye.`;
-
-        // Direct fetch call to Gemini 1.5 Flash Endpoint
-        const googleResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                contents: [
-                    {
-                        role: "user",
-                        parts: [
-                            { text: `${systemInstruction}\n\nUser Question: ${message}` }
-                        ]
-                    }
-                ]
-            })
-        });
-
-        const data = await googleResponse.json();
-
-        // Handle API key or response error from Google
-        if (data.error) {
-            return res.status(200).json({ 
-                reply: `⚠️ Google API Error: ${data.error.message || 'API key issue'}` 
-            });
-        }
-
-        if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-            const aiReply = data.candidates[0].content.parts[0].text;
-            return res.status(200).json({ reply: aiReply });
-        } else {
-            return res.status(200).json({ 
-                reply: "Arre yaar, Gemini se proper text format nahi mila. Ek baar dobara try kar!" 
-            });
-        }
-
-    } catch (error) {
-        return res.status(200).json({ 
-            reply: `⚠️ Backend Crash: ${error.message}` 
-        });
-    }
+if (
+  contents.length === 0 ||
+  !contents.some((message) => message.role === "user")
+) {
+  return res.status(400).json({
+    error: "Please send a valid user message."
+  });
 }
+
+const response = await fetch(
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey
+    },
+    body: JSON.stringify({
+      systemInstruction: {
+        parts: [{
+          text:
+            "You are NOVA, a helpful, intelligent AI assistant. " +
+            "Speak naturally and clearly. Match the user's language, " +
+            "including Hindi or Hinglish when appropriate. " +
+            "Be friendly, accurate, and honest when unsure."
+        }]
+      },
+      contents,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1024
+      }
+    })
+  }
+);
+
+const data = await response.json();
+
+if (!response.ok) {
+  console.error(
+    "Gemini API error:",
+    response.status,
+    data?.error?.message || "Unknown provider error"
+  );
+
+  return res.status(502).json({
+    error:
+      data?.error?.message ||
+      "Gemini API request failed. Check your model access and quota."
+  });
+}
+
+const reply = (data.candidates?.[0]?.content?.parts || [])
+  .map((part) => part.text || "")
+  .join("")
+  .trim();
+
+if (!reply) {
+  return res.status(502).json({
+    error:
+      "Gemini returned no text. The response may have been blocked or incomplete."
+  });
+}
+
+return res.status(200).json({ reply });
+} catch (error) { console.error("NOVA backend error:", error);
+return res.status(500).json({
+  error: "NOVA could not connect to the AI service. Try again."
+});
+} }`}
