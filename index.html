@@ -78,6 +78,27 @@
 
         .header-left {
             display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-toggle-btn {
+            background: rgba(30, 15, 50, 0.5);
+            border: 1px solid var(--glass-border);
+            color: #e0aaff;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.9rem;
+            backdrop-filter: blur(8px);
+        }
+
+        .brand-col {
+            display: flex;
             flex-direction: column;
         }
 
@@ -176,6 +197,106 @@
             font-size: 0.65rem;
             cursor: pointer;
             font-weight: 600;
+        }
+
+        /* Sliding History Sidebar Drawer */
+        .sidebar-drawer {
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 80%;
+            max-width: 320px;
+            height: 100dvh;
+            background: rgba(8, 2, 18, 0.95);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            z-index: 100;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.8);
+        }
+
+        .sidebar-drawer.open {
+            left: 0;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(199, 125, 255, 0.1);
+        }
+
+        .sidebar-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #e0aaff;
+            letter-spacing: 1px;
+        }
+
+        .sidebar-close {
+            background: transparent;
+            border: none;
+            color: #c77dff;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        .sidebar-new-chat-btn {
+            margin: 15px 20px;
+            background: linear-gradient(135deg, #7b2cbf, #9d4edd);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(157, 78, 221, 0.3);
+        }
+
+        .sidebar-history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 15px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .history-item {
+            padding: 12px 14px;
+            background: rgba(20, 8, 35, 0.6);
+            border: 1px solid rgba(199, 125, 255, 0.1);
+            border-radius: 12px;
+            font-size: 0.82rem;
+            color: #f1e6ff;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover, .history-item.active {
+            background: rgba(157, 78, 221, 0.25);
+            border-color: var(--neon-glow);
+        }
+
+        .sidebar-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 90;
+            display: none;
+        }
+
+        .sidebar-backdrop.show {
+            display: block;
         }
 
         /* Chat Stream */
@@ -373,17 +494,32 @@
         <div class="mascot-wallpaper"></div>
         <div class="overlay-gradient"></div>
 
+        <!-- Sliding History Sidebar Drawer -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+        <div class="sidebar-drawer" id="sidebarDrawer">
+            <div class="sidebar-header">
+                <span class="sidebar-title">✦ Chat History</span>
+                <button class="sidebar-close" id="sidebarClose">✕</button>
+            </div>
+            <button class="sidebar-new-chat-btn" id="sidebarNewChat">+ New Chat Session</button>
+            <div class="sidebar-history-list" id="sidebarHistoryList">
+                <!-- Dynamic Chat Sessions will load here -->
+            </div>
+        </div>
+
         <div class="top-bar">
             <div class="header-left">
-                <div class="brand-row">
-                    <span class="brand-name">NOVA AI</span>
-                    <div class="pulse-dot"></div>
+                <button class="menu-toggle-btn" id="menuToggleBtn" title="Chat History">☰</button>
+                <div class="brand-col">
+                    <div class="brand-row">
+                        <span class="brand-name">NOVA AI</span>
+                        <div class="pulse-dot"></div>
+                    </div>
+                    <span class="status-tag">System Online. Ready for Chaos. ⚡</span>
                 </div>
-                <span class="status-tag">System Online. Ready for Chaos. ⚡</span>
             </div>
             <div class="header-buttons">
                 <button class="action-chip" id="installBtn">📲 Install</button>
-                <button class="action-chip" id="clearBtn">+ New Chat</button>
                 
                 <!-- Google Sign In Button & User Profile -->
                 <button class="action-chip" id="googleSignInBtn" style="background: linear-gradient(135deg, #4285F4, #34A853); color: white; border: none;">Sign In</button>
@@ -421,7 +557,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyBFZgeMPYIdpTR92DUkVFz-7h1X2xOdH3A",
@@ -445,6 +581,7 @@
 
         let currentUserToken = null;
         window.currentUserId = null;
+        window.currentChatSessionId = 'session_' + Date.now();
 
         googleSignInBtn.addEventListener('click', async () => {
             try {
@@ -469,15 +606,15 @@
                 currentUserToken = await user.getIdToken();
                 window.currentUserId = user.uid;
                 
-                // Load saved chat history from Firestore for this user
-                if (window.loadUserHistoryFromFirestore) {
-                    window.loadUserHistoryFromFirestore(user.uid);
+                if (window.loadUserSessionsList) {
+                    window.loadUserSessionsList(user.uid);
                 }
             } else {
                 googleSignInBtn.style.display = 'block';
                 userPill.style.display = 'none';
                 currentUserToken = null;
                 window.currentUserId = null;
+                document.getElementById('sidebarHistoryList').innerHTML = '';
             }
         });
 
@@ -488,48 +625,92 @@
             return currentUserToken;
         };
 
-        // Firestore helpers exposed globally
+        // Firestore Session Management
         window.saveMessageToFirestore = async (role, textContent) => {
-            if (!window.currentUserId) return; // Only save if logged in
+            if (!window.currentUserId) return;
             try {
                 await addDoc(collection(db, "chats"), {
                     userId: window.currentUserId,
+                    sessionId: window.currentChatSessionId,
                     role: role,
                     content: textContent,
                     createdAt: serverTimestamp()
                 });
             } catch (e) {
-                console.error("Error saving message to Firestore:", e);
+                console.error("Error saving message:", e);
             }
         };
 
-        window.loadUserHistoryFromFirestore = async (uid) => {
+        window.loadUserSessionsList = async (uid) => {
             try {
-                const q = query(collection(db, "chats"), where("userId", "==", uid), orderBy("createdAt", "asc"));
+                const q = query(collection(db, "chats"), where("userId", "==", uid), orderBy("createdAt", "desc"));
                 const querySnapshot = await getDocs(q);
                 
-                const chatStream = document.getElementById('chatStream');
-                if (querySnapshot.docs.length > 0) {
-                    chatStream.innerHTML = `
-                        <div class="msg-bubble ai">
-                            Welcome back! RaoSahab ki NOVA purani history ke sath active hai. ⚡
-                        </div>
-                    `;
-                    window.messageHistory = [];
-                    querySnapshot.forEach((docSnap) => {
-                        const data = docSnap.data();
-                        if (data.role === 'user') {
-                            window.appendUserMessage(data.content, []);
-                            window.messageHistory.push({ role: "user", content: [{ text: data.content }] });
-                        } else if (data.role === 'model') {
-                            window.appendHtmlMessage(data.content, 'ai');
-                            window.messageHistory.push({ role: "model", content: [{ text: data.content }] });
-                        }
-                    });
-                    chatStream.scrollTop = chatStream.scrollHeight;
+                const sessionsMap = {};
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const sId = data.sessionId || 'default_session';
+                    if (!sessionsMap[sId]) {
+                        sessionsMap[sId] = {
+                            id: sId,
+                            title: data.role === 'user' ? data.content : 'Nova Chat Session',
+                            time: data.createdAt
+                        };
+                    }
+                });
+
+                const historyList = document.getElementById('sidebarHistoryList');
+                historyList.innerHTML = '';
+                
+                const sessions = Object.values(sessionsMap);
+                if (sessions.length === 0) {
+                    historyList.innerHTML = '<div style="color: rgba(224,170,255,0.4); font-size: 0.75rem; text-align: center; margin-top: 20px;">Koi history nahi hai abhi.</div>';
+                    return;
                 }
+
+                sessions.forEach(sess => {
+                    const item = document.createElement('div');
+                    item.className = `history-item ${sess.id === window.currentChatSessionId ? 'active' : ''}`;
+                    item.textContent = sess.title.length > 30 ? sess.title.substring(0, 30) + '...' : sess.title;
+                    item.onclick = () => {
+                        window.switchChatSession(sess.id, uid);
+                    };
+                    historyList.appendChild(item);
+                });
             } catch (e) {
-                console.error("Error loading history:", e);
+                console.error("Error loading sessions:", e);
+            }
+        };
+
+        window.switchChatSession = async (sessionId, uid) => {
+            window.currentChatSessionId = sessionId;
+            const chatStream = document.getElementById('chatStream');
+            chatStream.innerHTML = `
+                <div class="msg-bubble ai">
+                    Session loaded. Bol kya scene hai? ⚡
+                </div>
+            `;
+            window.messageHistory = [];
+
+            try {
+                const q = query(collection(db, "chats"), where("userId", "==", uid), where("sessionId", "==", sessionId), orderBy("createdAt", "asc"));
+                const querySnapshot = await getDocs(q);
+
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    if (data.role === 'user') {
+                        window.appendUserMessage(data.content, []);
+                        window.messageHistory.push({ role: "user", content: [{ text: data.content }] });
+                    } else if (data.role === 'model') {
+                        window.appendHtmlMessage(data.content, 'ai');
+                        window.messageHistory.push({ role: "model", content: [{ text: data.content }] });
+                    }
+                });
+                chatStream.scrollTop = chatStream.scrollHeight;
+                document.getElementById('sidebarDrawer').classList.remove('open');
+                document.getElementById('sidebarBackdrop').classList.remove('show');
+            } catch (e) {
+                console.error("Error switching session:", e);
             }
         };
     </script>
@@ -538,7 +719,11 @@
         const chatStream = document.getElementById('chatStream');
         const userInput = document.getElementById('userInput');
         const sendBtn = document.getElementById('sendBtn');
-        const clearBtn = document.getElementById('clearBtn');
+        const menuToggleBtn = document.getElementById('menuToggleBtn');
+        const sidebarDrawer = document.getElementById('sidebarDrawer');
+        const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+        const sidebarClose = document.getElementById('sidebarClose');
+        const sidebarNewChat = document.getElementById('sidebarNewChat');
         const installBtn = document.getElementById('installBtn');
         const attachBtn = document.getElementById('attachBtn');
         const imageInput = document.getElementById('imageInput');
@@ -548,6 +733,39 @@
         window.messageHistory = [];
         let selectedImages = [];
         let deferredPrompt;
+
+        // Drawer toggling
+        menuToggleBtn.addEventListener('click', () => {
+            sidebarDrawer.classList.add('open');
+            sidebarBackdrop.classList.add('show');
+        });
+
+        sidebarClose.addEventListener('click', () => {
+            sidebarDrawer.classList.remove('open');
+            sidebarBackdrop.classList.remove('show');
+        });
+
+        sidebarBackdrop.addEventListener('click', () => {
+            sidebarDrawer.classList.remove('open');
+            sidebarBackdrop.classList.remove('show');
+        });
+
+        sidebarNewChat.addEventListener('click', () => {
+            window.currentChatSessionId = 'session_' + Date.now();
+            window.messageHistory = [];
+            selectedImages = [];
+            previewContainer.innerHTML = '';
+            chatStream.innerHTML = `
+                <div class="msg-bubble ai">
+                    Naya chat session shuru ho gaya hai. Bol kya scene hai? ⚡
+                </div>
+            `;
+            sidebarDrawer.classList.remove('open');
+            sidebarBackdrop.classList.remove('show');
+            if (window.currentUserId && window.loadUserSessionsList) {
+                window.loadUserSessionsList(window.currentUserId);
+            }
+        });
 
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
@@ -649,7 +867,6 @@
 
             window.messageHistory.push({ role: "user", content: userContentParts });
 
-            // Save user message to Firestore if logged in
             if (text && window.saveMessageToFirestore) {
                 window.saveMessageToFirestore('user', text);
             }
@@ -688,9 +905,11 @@
                     window.appendHtmlMessage(data.reply, 'ai');
                     window.messageHistory.push({ role: "model", content: data.reply });
 
-                    // Save AI reply to Firestore if logged in
                     if (window.saveMessageToFirestore) {
                         window.saveMessageToFirestore('model', data.reply);
+                    }
+                    if (window.currentUserId && window.loadUserSessionsList) {
+                        window.loadUserSessionsList(window.currentUserId);
                     }
                 } else if (data.error) {
                     appendMessage(`⚠️ Error: ${data.error}`, 'ai');
@@ -756,17 +975,6 @@
         sendBtn.addEventListener('click', handleSendMessage);
         userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') handleSendMessage();
-        });
-
-        clearBtn.addEventListener('click', () => {
-            window.messageHistory = [];
-            selectedImages = [];
-            previewContainer.innerHTML = '';
-            chatStream.innerHTML = `
-                <div class="msg-bubble ai">
-                    Session wiped. RaoSahab ki NOVA wapas online hai. Bol kya scene hai? ⚡
-                </div>
-            `;
         });
     </script>
 </body>
