@@ -557,7 +557,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, setDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyBFZgeMPYIdpTR92DUkVFz-7h1X2xOdH3A",
@@ -596,6 +596,7 @@
             await signOut(auth);
             currentUserToken = null;
             window.currentUserId = null;
+            document.getElementById('sidebarHistoryList').innerHTML = '';
         });
 
         onAuthStateChanged(auth, async (user) => {
@@ -625,10 +626,11 @@
             return currentUserToken;
         };
 
-        // Firestore Session Management
+        // Firestore Session & Topic Management
         window.saveMessageToFirestore = async (role, textContent) => {
             if (!window.currentUserId) return;
             try {
+                // Save message
                 await addDoc(collection(db, "chats"), {
                     userId: window.currentUserId,
                     sessionId: window.currentChatSessionId,
@@ -636,6 +638,24 @@
                     content: textContent,
                     createdAt: serverTimestamp()
                 });
+
+                // If it's the first user message, set it as session title topic
+                if (role === 'user') {
+                    const sessionRef = doc(db, "sessions", window.currentChatSessionId);
+                    const sessSnap = await getDoc(sessionRef);
+                    if (!sessSnap.exists()) {
+                        const titleText = textContent.length > 32 ? textContent.substring(0, 32) + '...' : textContent;
+                        await setDoc(sessionRef, {
+                            userId: window.currentUserId,
+                            title: titleText,
+                            createdAt: serverTimestamp()
+                        });
+                    }
+                }
+
+                if (window.loadUserSessionsList) {
+                    window.loadUserSessionsList(window.currentUserId);
+                }
             } catch (e) {
                 console.error("Error saving message:", e);
             }
@@ -643,37 +663,26 @@
 
         window.loadUserSessionsList = async (uid) => {
             try {
-                const q = query(collection(db, "chats"), where("userId", "==", uid), orderBy("createdAt", "desc"));
+                const q = query(collection(db, "sessions"), where("userId", "==", uid), orderBy("createdAt", "desc"));
                 const querySnapshot = await getDocs(q);
                 
-                const sessionsMap = {};
-                querySnapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    const sId = data.sessionId || 'default_session';
-                    if (!sessionsMap[sId]) {
-                        sessionsMap[sId] = {
-                            id: sId,
-                            title: data.role === 'user' ? data.content : 'Nova Chat Session',
-                            time: data.createdAt
-                        };
-                    }
-                });
-
                 const historyList = document.getElementById('sidebarHistoryList');
                 historyList.innerHTML = '';
                 
-                const sessions = Object.values(sessionsMap);
-                if (sessions.length === 0) {
+                if (querySnapshot.empty) {
                     historyList.innerHTML = '<div style="color: rgba(224,170,255,0.4); font-size: 0.75rem; text-align: center; margin-top: 20px;">Koi history nahi hai abhi.</div>';
                     return;
                 }
 
-                sessions.forEach(sess => {
+                querySnapshot.forEach((docSnap) => {
+                    const sess = docSnap.data();
+                    const sId = docSnap.id;
+
                     const item = document.createElement('div');
-                    item.className = `history-item ${sess.id === window.currentChatSessionId ? 'active' : ''}`;
-                    item.textContent = sess.title.length > 30 ? sess.title.substring(0, 30) + '...' : sess.title;
+                    item.className = `history-item ${sId === window.currentChatSessionId ? 'active' : ''}`;
+                    item.textContent = sess.title || 'Nova Chat Session';
                     item.onclick = () => {
-                        window.switchChatSession(sess.id, uid);
+                        window.switchChatSession(sId, uid);
                     };
                     historyList.appendChild(item);
                 });
@@ -709,6 +718,10 @@
                 chatStream.scrollTop = chatStream.scrollHeight;
                 document.getElementById('sidebarDrawer').classList.remove('open');
                 document.getElementById('sidebarBackdrop').classList.remove('show');
+                
+                if (window.loadUserSessionsList) {
+                    window.loadUserSessionsList(uid);
+                }
             } catch (e) {
                 console.error("Error switching session:", e);
             }
@@ -734,7 +747,6 @@
         let selectedImages = [];
         let deferredPrompt;
 
-        // Drawer toggling
         menuToggleBtn.addEventListener('click', () => {
             sidebarDrawer.classList.add('open');
             sidebarBackdrop.classList.add('show');
@@ -907,9 +919,6 @@
 
                     if (window.saveMessageToFirestore) {
                         window.saveMessageToFirestore('model', data.reply);
-                    }
-                    if (window.currentUserId && window.loadUserSessionsList) {
-                        window.loadUserSessionsList(window.currentUserId);
                     }
                 } else if (data.error) {
                     appendMessage(`⚠️ Error: ${data.error}`, 'ai');
