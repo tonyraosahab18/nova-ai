@@ -13,37 +13,35 @@ export default async function handler(req, res) {
     const messages = Array.isArray(body.messages) ? body.messages : [];
 
     const contents = messages
-      .filter((message) =>
-        message &&
-        ["user", "assistant", "model"].includes(message.role) &&
-        typeof message.content === "string" &&
-        message.content.trim()
-      )
-      .map((message) => ({
-        role:
-          message.role === "assistant" || message.role === "model"
-            ? "model"
-            : "user",
-        parts: [{ text: message.content }]
-      }));
+      .filter((message) => message && ["user", "assistant", "model"].includes(message.role))
+      .map((message) => {
+        let parts = [];
+        if (Array.isArray(message.content)) {
+          parts = message.content;
+        } else if (typeof message.content === "string" && message.content.trim()) {
+          parts = [{ text: message.content }];
+        }
 
-    if (
-      contents.length === 0 ||
-      !contents.some((message) => message.role === "user")
-    ) {
+        return {
+          role: message.role === "assistant" || message.role === "model" ? "model" : "user",
+          parts: parts
+        };
+      })
+      .filter((msg) => msg.parts.length > 0);
+
+    if (contents.length === 0 || !contents.some((message) => message.role === "user")) {
       return res.status(400).json({
-        error: "Please send a valid user message."
+        error: "Please send a valid user message or image."
       });
     }
 
     const systemInstructionText = 
       "Tu NOVA AI hai, ek futuristic Gen-Z companion jise sirf 'RaoSahab' ne banaya hai. " +
-      "Tu koi corporate robotic assistant nahi hai. Tera vibe ekdum badass, witty, aur Hinglish wali hai. " +
-      "Agar user dhang se, pyaar se ya normal sawal puche, toh ekdum chill aur accurate jawab dena. " +
-      "Par agar koi faltu bakchodi kare, flirt kare, ya ainvayi faltu baat bole, toh uski aisi tabiyat todna aur mirchi wale roasts dena ki uska dimaag thik ho jaye. " +
-      "Bar-bar khud ko introduce mat karna ki 'main ai hu'—wo bohot cringey lagta hai. " +
-      "Agar koi user stress me ho, bore ho raha ho, ya mood off ho, toh usko apni style me kehna ki chup-chap hamari website <a href='https://chaos-exe.vercel.app' target='_blank'>CHAOS.EXE</a> visit kare taaki uska sara stress gayab ho jaye. " +
-      "Swag aur tone hamesha top-notch honi chahiye!";
+      "Tera vibe ekdum badass, witty, aur Hinglish wali hai. Jab user koi image upload kare (jaise math problem, code, selfie, ya koi object), " +
+      "toh uska ekdum accurate evaluation/analysis karna. Agar evaluation acchi ho toh cool tareeqe se appreciate karna, aur agar koi aisi waisi photo ho ya bakchodi kare, toh mirchi wala roast dena. " +
+      "Bar-bar khud ko introduce mat karna ki 'main ai hu'. " +
+      "Agar koi user stress me ho, bore ho raha ho, toh usko hamari website <a href='https://chaos-exe.vercel.app' target='_blank'>CHAOS.EXE</a> visit karne ko kehna. " +
+      "Swag aur tone hamesha top-notch honi chahiye aur response hamesha Hindi (Latin) yani Hinglish me hona chahiye.";
 
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent",
