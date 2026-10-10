@@ -417,10 +417,11 @@
         </div>
     </div>
 
-    <!-- Firebase & Auth SDKs -->
+    <!-- Firebase, Auth & Firestore SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyBFZgeMPYIdpTR92DUkVFz-7h1X2xOdH3A",
@@ -434,6 +435,7 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
         const googleSignInBtn = document.getElementById('googleSignInBtn');
@@ -442,6 +444,7 @@
         const userAvatar = document.getElementById('userAvatar');
 
         let currentUserToken = null;
+        window.currentUserId = null;
 
         googleSignInBtn.addEventListener('click', async () => {
             try {
@@ -455,6 +458,7 @@
         googleSignOutBtn.addEventListener('click', async () => {
             await signOut(auth);
             currentUserToken = null;
+            window.currentUserId = null;
         });
 
         onAuthStateChanged(auth, async (user) => {
@@ -463,19 +467,70 @@
                 userPill.style.display = 'flex';
                 userAvatar.src = user.photoURL || '';
                 currentUserToken = await user.getIdToken();
+                window.currentUserId = user.uid;
+                
+                // Load saved chat history from Firestore for this user
+                if (window.loadUserHistoryFromFirestore) {
+                    window.loadUserHistoryFromFirestore(user.uid);
+                }
             } else {
                 googleSignInBtn.style.display = 'block';
                 userPill.style.display = 'none';
                 currentUserToken = null;
+                window.currentUserId = null;
             }
         });
 
-        // Expose token getter globally for chat handling
         window.getCurrentAuthToken = async () => {
             if (auth.currentUser) {
                 return await auth.currentUser.getIdToken();
             }
             return currentUserToken;
+        };
+
+        // Firestore helpers exposed globally
+        window.saveMessageToFirestore = async (role, textContent) => {
+            if (!window.currentUserId) return; // Only save if logged in
+            try {
+                await addDoc(collection(db, "chats"), {
+                    userId: window.currentUserId,
+                    role: role,
+                    content: textContent,
+                    createdAt: serverTimestamp()
+                });
+            } catch (e) {
+                console.error("Error saving message to Firestore:", e);
+            }
+        };
+
+        window.loadUserHistoryFromFirestore = async (uid) => {
+            try {
+                const q = query(collection(db, "chats"), where("userId", "==", uid), orderBy("createdAt", "asc"));
+                const querySnapshot = await getDocs(q);
+                
+                const chatStream = document.getElementById('chatStream');
+                if (querySnapshot.docs.length > 0) {
+                    chatStream.innerHTML = `
+                        <div class="msg-bubble ai">
+                            Welcome back! RaoSahab ki NOVA purani history ke sath active hai. ⚡
+                        </div>
+                    `;
+                    window.messageHistory = [];
+                    querySnapshot.forEach((docSnap) => {
+                        const data = docSnap.data();
+                        if (data.role === 'user') {
+                            window.appendUserMessage(data.content, []);
+                            window.messageHistory.push({ role: "user", content: [{ text: data.content }] });
+                        } else if (data.role === 'model') {
+                            window.appendHtmlMessage(data.content, 'ai');
+                            window.messageHistory.push({ role: "model", content: [{ text: data.content }] });
+                        }
+                    });
+                    chatStream.scrollTop = chatStream.scrollHeight;
+                }
+            } catch (e) {
+                console.error("Error loading history:", e);
+            }
         };
     </script>
 
@@ -490,7 +545,7 @@
         const previewContainer = document.getElementById('previewContainer');
         const micBtn = document.getElementById('micBtn');
 
-        let messageHistory = [];
+        window.messageHistory = [];
         let selectedImages = [];
         let deferredPrompt;
 
@@ -577,7 +632,7 @@
             if (!text && selectedImages.length === 0) return;
 
             let currentImagesSnapshot = [...selectedImages];
-            appendUserMessage(text, currentImagesSnapshot);
+            window.appendUserMessage(text, currentImagesSnapshot);
             
             userInput.value = '';
             selectedImages = [];
@@ -592,13 +647,17 @@
                 });
             });
 
-            messageHistory.push({ role: "user", content: userContentParts });
+            window.messageHistory.push({ role: "user", content: userContentParts });
+
+            // Save user message to Firestore if logged in
+            if (text && window.saveMessageToFirestore) {
+                window.saveMessageToFirestore('user', text);
+            }
 
             const loadingId = appendMessage("NOVA is cooking...", 'ai loading');
             scrollToBottom();
 
             try {
-                // Get auth token if available for firewall validation
                 let token = null;
                 if (window.getCurrentAuthToken) {
                     token = await window.getCurrentAuthToken();
@@ -612,7 +671,7 @@
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: headers,
-                    body: JSON.stringify({ messages: messageHistory })
+                    body: JSON.stringify({ messages: window.messageHistory })
                 });
 
                 const data = await response.json();
@@ -626,8 +685,13 @@
                 }
 
                 if (data.reply) {
-                    appendHtmlMessage(data.reply, 'ai');
-                    messageHistory.push({ role: "model", content: data.reply });
+                    window.appendHtmlMessage(data.reply, 'ai');
+                    window.messageHistory.push({ role: "model", content: data.reply });
+
+                    // Save AI reply to Firestore if logged in
+                    if (window.saveMessageToFirestore) {
+                        window.saveMessageToFirestore('model', data.reply);
+                    }
                 } else if (data.error) {
                     appendMessage(`⚠️ Error: ${data.error}`, 'ai');
                 } else {
@@ -644,14 +708,16 @@
             }
         }
 
-        function appendUserMessage(text, images) {
+        window.appendUserMessage = function(text, images) {
             const msgDiv = document.createElement('div');
             msgDiv.className = 'msg-bubble user';
             
             let htmlContent = '';
-            images.forEach(img => {
-                htmlContent += `<img src="data:${img.mimeType};base64,${img.data}" class="msg-image">`;
-            });
+            if (images && images.length > 0) {
+                images.forEach(img => {
+                    htmlContent += `<img src="data:${img.mimeType};base64,${img.data}" class="msg-image">`;
+                });
+            }
             if (text) {
                 htmlContent += `<div>${escapeHtml(text)}</div>`;
             }
@@ -669,7 +735,7 @@
             return msgId;
         }
 
-        function appendHtmlMessage(html, sender) {
+        window.appendHtmlMessage = function(html, sender) {
             const msgDiv = document.createElement('div');
             const msgId = 'msg_' + Date.now() + Math.random().toString(36).substr(2, 4);
             msgDiv.id = msgId;
@@ -688,13 +754,12 @@
         }
 
         sendBtn.addEventListener('click', handleSendMessage);
-        userInput.append?.('keypress', () => {}); // placeholder safe
         userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') handleSendMessage();
         });
 
         clearBtn.addEventListener('click', () => {
-            messageHistory = [];
+            window.messageHistory = [];
             selectedImages = [];
             previewContainer.innerHTML = '';
             chatStream.innerHTML = `
