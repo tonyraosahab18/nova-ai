@@ -9,8 +9,8 @@
             --bg-dark: #05010b;
             --neon-purple: #9d4edd;
             --neon-glow: #c77dff;
-            --glass-card: rgba(22, 10, 38, 0.55);
-            --glass-border: rgba(199, 125, 255, 0.25);
+            --glass-card: rgba(15, 5, 25, 0.4);
+            --glass-border: rgba(199, 125, 255, 0.18);
             --text-main: #f8f9fa;
         }
 
@@ -49,16 +49,16 @@
             inset: 0;
             background: url('file_00000000519482109897efcb371a5a26.png') no-repeat center center;
             background-size: cover;
-            opacity: 0.55;
+            opacity: 0.65;
             z-index: 1;
             pointer-events: none;
-            filter: contrast(1.1) brightness(0.9);
+            filter: contrast(1.15) brightness(0.95);
         }
 
         .overlay-gradient {
             position: absolute;
             inset: 0;
-            background: linear-gradient(180deg, rgba(5, 1, 11, 0.7) 0%, rgba(5, 1, 11, 0.2) 40%, rgba(5, 1, 11, 0.85) 85%, #05010b 100%);
+            background: linear-gradient(180deg, rgba(5, 1, 11, 0.6) 0%, rgba(5, 1, 11, 0.15) 35%, rgba(5, 1, 11, 0.75) 85%, #05010b 100%);
             z-index: 2;
             pointer-events: none;
         }
@@ -94,7 +94,7 @@
         }
 
         .new-chat-btn {
-            background: rgba(30, 15, 50, 0.6);
+            background: rgba(30, 15, 50, 0.5);
             border: 1px solid var(--glass-border);
             color: #e0aaff;
             padding: 7px 14px;
@@ -102,7 +102,7 @@
             font-size: 0.75rem;
             font-weight: 600;
             cursor: pointer;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(8px);
             transition: all 0.2s ease;
         }
 
@@ -130,17 +130,17 @@
         .msg-bubble {
             max-width: 85%;
             padding: 13px 17px;
-            border-radius: 20px;
+            border-radius: 18px;
             font-size: 0.9rem;
             line-height: 1.5;
-            backdrop-filter: blur(16px);
+            backdrop-filter: blur(12px);
             word-wrap: break-word;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
         }
 
         .msg-bubble.ai {
-            background: rgba(18, 8, 32, 0.75);
-            border: 1px solid rgba(199, 125, 255, 0.3);
+            background: var(--glass-card);
+            border: 1px solid var(--glass-border);
             color: #f1e6ff;
             align-self: flex-start;
             border-top-left-radius: 4px;
@@ -153,8 +153,8 @@
         }
 
         .msg-bubble.user {
-            background: linear-gradient(135deg, rgba(123, 44, 191, 0.85), rgba(157, 78, 221, 0.9));
-            border: 1px solid rgba(224, 170, 255, 0.4);
+            background: linear-gradient(135deg, rgba(123, 44, 191, 0.75), rgba(157, 78, 221, 0.85));
+            border: 1px solid rgba(224, 170, 255, 0.3);
             color: #ffffff;
             align-self: flex-end;
             border-top-right-radius: 4px;
@@ -167,18 +167,18 @@
             flex-direction: column;
             gap: 10px;
             z-index: 10;
-            background: linear-gradient(to top, #05010b 80%, transparent);
+            background: linear-gradient(to top, #05010b 85%, transparent);
         }
 
         .input-pill-box {
-            background: rgba(25, 12, 42, 0.65);
-            border: 1.5px solid rgba(199, 125, 255, 0.4);
+            background: rgba(20, 8, 35, 0.6);
+            border: 1.5px solid rgba(199, 125, 255, 0.3);
             border-radius: 30px;
             padding: 6px 8px 6px 18px;
             display: flex;
             align-items: center;
-            backdrop-filter: blur(20px);
-            box-shadow: 0 0 20px rgba(157, 78, 221, 0.25);
+            backdrop-filter: blur(16px);
+            box-shadow: 0 0 20px rgba(157, 78, 221, 0.2);
         }
 
         .text-input {
@@ -192,7 +192,7 @@
         }
 
         .text-input::placeholder {
-            color: rgba(224, 170, 255, 0.5);
+            color: rgba(224, 170, 255, 0.45);
         }
 
         .action-send-btn {
@@ -207,7 +207,7 @@
             display: flex;
             align-items: center;
             gap: 4px;
-            box-shadow: 0 0 12px rgba(199, 125, 255, 0.5);
+            box-shadow: 0 0 12px rgba(199, 125, 255, 0.4);
             transition: transform 0.15s ease;
         }
 
@@ -218,7 +218,7 @@
         .footer-branding {
             text-align: center;
             font-size: 0.65rem;
-            color: rgba(224, 170, 255, 0.45);
+            color: rgba(224, 170, 255, 0.4);
             letter-spacing: 0.8px;
             font-weight: 500;
             margin-top: 2px;
@@ -246,7 +246,7 @@
 
         <div class="chat-stream" id="chatStream">
             <div class="msg-bubble ai">
-                Yo! Main NOVA hoon, teri personal Gen-Z AI companion. Powered by RaoSahab & Team. Bata aaj kya scene hai? 😎
+                System initialized. Main NOVA hoon—RaoSahab & Team dwara develop ki gayi advanced AI companion. Bataiye, aaj kis query ya task par kaam karna hai? ⚡
             </div>
         </div>
 
@@ -346,7 +346,7 @@
             messageHistory = [];
             chatStream.innerHTML = `
                 <div class="msg-bubble ai">
-                    Chat reset! Bol bhai, RaoSahab & Team ki NOVA AI ready hai. Kya command hai? ⚡
+                    Session reset. RaoSahab & Team ki NOVA AI ready hai. Next command dijiye! ⚡
                 </div>
             `;
         });
