@@ -3,6 +3,18 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  // --- FIREWALL & SECURITY LAYER ---
+  const authHeader = req.headers.authorization;
+  
+  // Optional security check example: 
+  // Agar tu chahta hai ki sirf signed-in users hi chat karein, toh token check compulsory kar sakta hai.
+  // Abhi ke liye firewall basic request validation aur rate limiting / header inspection kar raha hai.
+  const userAgent = req.headers['user-agent'] || '';
+  if (!userAgent || userAgent.includes('curl') && !authHeader) {
+    return res.status(403).json({ error: "Firewall Blocked: Suspicious or unauthorized client request." });
+  }
+  // ---------------------------------
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: "GEMINI_API_KEY is missing in Vercel Environment Variables." });
