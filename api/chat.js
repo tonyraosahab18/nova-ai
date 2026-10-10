@@ -1,4 +1,4 @@
-{`export default async function handler(req, res) { if (req.method !== "POST") { return res.status(405).json({ error: "Method not allowed" }); }
+`export default async function handler(req, res) { if (req.method !== "POST") { return res.status(405).json({ error: "Method not allowed" }); }
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) { return res.status(500).json({ error: "GEMINI_API_KEY is missing in Vercel Environment Variables." }); }
 try { const body = req.body || {}; const messages = Array.isArray(body.messages) ? body.messages : [];
@@ -87,4 +87,4 @@ return res.status(200).json({ reply });
 return res.status(500).json({
   error: "NOVA could not connect to the AI service. Try again."
 });
-} }`}
+} }`
