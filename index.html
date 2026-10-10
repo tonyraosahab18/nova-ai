@@ -9,8 +9,8 @@
             --bg-dark: #05010b;
             --neon-purple: #9d4edd;
             --neon-glow: #c77dff;
-            --glass-card: rgba(10, 3, 20, 0.2);
-            --glass-border: rgba(199, 125, 255, 0.12);
+            --glass-card: rgba(10, 3, 20, 0.25);
+            --glass-border: rgba(199, 125, 255, 0.15);
             --text-main: #f8f9fa;
         }
 
@@ -41,6 +41,7 @@
             flex-direction: column;
             position: relative;
             overflow: hidden;
+            box-shadow: 0 0 40px rgba(157, 78, 221, 0.15);
         }
 
         /* Fullscreen Mascot Background Wall */
@@ -49,27 +50,30 @@
             inset: 0;
             background: url('file_00000000519482109897efcb371a5a26.png') no-repeat center center;
             background-size: cover;
-            opacity: 0.7;
+            opacity: 0.72;
             z-index: 1;
             pointer-events: none;
-            filter: contrast(1.15) brightness(0.95);
+            filter: contrast(1.18) brightness(0.92);
         }
 
         .overlay-gradient {
             position: absolute;
             inset: 0;
-            background: linear-gradient(180deg, rgba(5, 1, 11, 0.55) 0%, rgba(5, 1, 11, 0.1) 35%, rgba(5, 1, 11, 0.7) 85%, #05010b 100%);
+            background: linear-gradient(180deg, rgba(5, 1, 11, 0.6) 0%, rgba(5, 1, 11, 0.12) 35%, rgba(5, 1, 11, 0.75) 85%, #05010b 100%);
             z-index: 2;
             pointer-events: none;
         }
 
         /* Header */
         .top-bar {
-            padding: 18px 20px 10px;
+            padding: 16px 20px 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             z-index: 10;
+            border-bottom: 1px solid rgba(199, 125, 255, 0.08);
+            background: rgba(5, 1, 11, 0.4);
+            backdrop-filter: blur(10px);
         }
 
         .header-left {
@@ -77,20 +81,42 @@
             flex-direction: column;
         }
 
+        .brand-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .brand-name {
-            font-size: 1.35rem;
+            font-size: 1.3rem;
             font-weight: 800;
             letter-spacing: 2px;
             color: #ffffff;
             text-shadow: 0 0 12px rgba(199, 125, 255, 0.8);
         }
 
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #00ffcc;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #00ffcc;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 12px #00ffcc; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+
         .status-tag {
-            font-size: 0.68rem;
+            font-size: 0.65rem;
             color: var(--neon-glow);
             opacity: 0.85;
             font-weight: 500;
             letter-spacing: 0.5px;
+            margin-top: 1px;
         }
 
         .header-buttons {
@@ -99,7 +125,7 @@
         }
 
         .action-chip {
-            background: rgba(30, 15, 50, 0.4);
+            background: rgba(30, 15, 50, 0.5);
             border: 1px solid var(--glass-border);
             color: #e0aaff;
             padding: 6px 12px;
@@ -145,7 +171,7 @@
             border-radius: 18px;
             font-size: 0.9rem;
             line-height: 1.5;
-            backdrop-filter: blur(4px);
+            backdrop-filter: blur(6px);
             word-wrap: break-word;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
         }
@@ -178,6 +204,47 @@
             margin-bottom: 8px;
             display: block;
             border: 1px solid rgba(199, 125, 255, 0.3);
+        }
+
+        /* Watermarked Image Container */
+        .watermarked-img-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 6px;
+            border: 1px solid rgba(199, 125, 255, 0.4);
+            box-shadow: 0 0 15px rgba(157, 78, 221, 0.3);
+        }
+
+        .watermarked-img-wrapper img {
+            width: 100%;
+            display: block;
+        }
+
+        /* Minimalist Glowing Star Watermark Badge (No Name) */
+        .nova-watermark-badge {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(10, 3, 20, 0.7);
+            border: 1px solid rgba(199, 125, 255, 0.5);
+            padding: 5px 7px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(6px);
+            box-shadow: 0 0 12px rgba(199, 125, 255, 0.6);
+            pointer-events: none;
+        }
+
+        .nova-star-icon {
+            color: #c77dff;
+            font-size: 0.95rem;
+            text-shadow: 0 0 8px #c77dff, 0 0 15px #9d4edd;
+            line-height: 1;
         }
 
         /* Preview container for selected images */
@@ -233,13 +300,13 @@
         }
 
         .input-pill-box {
-            background: rgba(15, 5, 25, 0.45);
+            background: rgba(15, 5, 25, 0.5);
             border: 1.5px solid rgba(199, 125, 255, 0.25);
             border-radius: 30px;
             padding: 6px 8px 6px 14px;
             display: flex;
             align-items: center;
-            backdrop-filter: blur(12px);
+            backdrop-filter: blur(14px);
             box-shadow: 0 0 20px rgba(157, 78, 221, 0.15);
         }
 
@@ -278,21 +345,23 @@
             background: linear-gradient(135deg, #9d4edd, #c77dff);
             color: #ffffff;
             border: none;
-            padding: 9px 16px;
-            border-radius: 22px;
-            font-size: 0.82rem;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            font-size: 1rem;
             font-weight: 700;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 4px;
+            justify-content: center;
             box-shadow: 0 0 12px rgba(199, 125, 255, 0.4);
             transition: transform 0.15s ease;
             margin-left: 4px;
+            flex-shrink: 0;
         }
 
         .action-send-btn:active {
-            transform: scale(0.93);
+            transform: scale(0.9);
         }
 
         .footer-branding {
@@ -318,7 +387,10 @@
 
         <div class="top-bar">
             <div class="header-left">
-                <span class="brand-name">NOVA AI</span>
+                <div class="brand-row">
+                    <span class="brand-name">NOVA AI</span>
+                    <div class="pulse-dot"></div>
+                </div>
                 <span class="status-tag">System Online. Ready for Chaos. ⚡</span>
             </div>
             <div class="header-buttons">
@@ -329,7 +401,7 @@
 
         <div class="chat-stream" id="chatStream">
             <div class="msg-bubble ai">
-                System online. RaoSahab ki NOVA active hai. Photo daal ya text bhej, evaluation start karte hain! ⚡
+                System online. RaoSahab ki NOVA active hai. Photo daal, evaluate karwa, ya image generate karne ka bol! ⚡
             </div>
         </div>
 
@@ -338,12 +410,11 @@
 
         <div class="bottom-section">
             <div class="input-pill-box">
-                <!-- Hidden File Input supporting multiple images without hanging -->
                 <input type="file" id="imageInput" accept="image/*" multiple style="display: none;">
                 <button class="icon-btn" id="attachBtn" title="Upload Images">📎</button>
                 <button class="icon-btn" id="micBtn" title="Voice Input">🎙️</button>
-                <input type="text" id="userInput" class="text-input" placeholder="Type or upload image..." autocomplete="off">
-                <button class="action-send-btn" id="sendBtn">Send ➔</button>
+                <input type="text" id="userInput" class="text-input" placeholder="Type prompt or command..." autocomplete="off">
+                <button class="action-send-btn" id="sendBtn" title="Send">➔</button>
             </div>
             <div class="footer-branding">
                 Powered by RaoSahab | Explore <a href="https://chaos-exe.vercel.app" target="_blank">CHAOS.EXE</a>
@@ -363,7 +434,7 @@
         const micBtn = document.getElementById('micBtn');
 
         let messageHistory = [];
-        let selectedImages = []; // Stores base64 items for current submission
+        let selectedImages = [];
         let deferredPrompt;
 
         // PWA Install Prompt
@@ -382,7 +453,7 @@
             }
         });
 
-        // Image Attachment Handler with multi-file support and safety check
+        // Image Attachment Handler
         attachBtn.addEventListener('click', () => imageInput.click());
 
         imageInput.addEventListener('change', (e) => {
@@ -401,7 +472,7 @@
                 };
                 reader.readAsDataURL(file);
             });
-            imageInput.value = ''; // Reset input
+            imageInput.value = '';
         });
 
         function renderPreviews() {
@@ -426,7 +497,7 @@
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const recognition = new SpeechRecognition();
-            recognition.lang = 'hi-IN'; // Supports Hinglish/Hindi recognition nicely
+            recognition.lang = 'hi-IN';
             recognition.continuous = false;
             recognition.interimResults = false;
 
@@ -438,24 +509,19 @@
             recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
                 userInput.value = userInput.value ? userInput.value + ' ' + transcript : transcript;
-                userInput.placeholder = "Type or upload image...";
+                userInput.placeholder = "Type prompt or command...";
             };
 
-            recognition.onerror = () => {
-                userInput.placeholder = "Type or upload image...";
-            };
-            recognition.onend = () => {
-                userInput.placeholder = "Type or upload image...";
-            };
+            recognition.onerror = () => { userInput.placeholder = "Type prompt or command..."; };
+            recognition.onend = () => { userInput.placeholder = "Type prompt or command..."; };
         } else {
-            micBtn.style.display = 'none'; // Hide if browser lacks support
+            micBtn.style.display = 'none';
         }
 
         async function handleSendMessage() {
             const text = userInput.value.trim();
             if (!text && selectedImages.length === 0) return;
 
-            // Prepare visual render payload
             let currentImagesSnapshot = [...selectedImages];
             appendUserMessage(text, currentImagesSnapshot);
             
@@ -464,7 +530,37 @@
             previewContainer.innerHTML = '';
             scrollToBottom();
 
-            // Push to history structure
+            const lowerText = text.toLowerCase();
+            const isImageGenRequest = (lowerText.includes("generate") || lowerText.includes("bana do") || lowerText.includes("create") || lowerText.includes("draw") || lowerText.includes("image bana")) && currentImagesSnapshot.length === 0;
+
+            if (isImageGenRequest) {
+                const loadingId = appendMessage("NOVA is generating image...", 'ai loading');
+                scrollToBottom();
+
+                const promptQuery = encodeURIComponent(text);
+                const imageUrl = `https://image.pollinations.ai/prompt/${promptQuery}?width=1024&height=1024&nologo=true`;
+
+                setTimeout(() => {
+                    const loadingElem = document.getElementById(loadingId);
+                    if (loadingElem) loadingElem.remove();
+
+                    // Render Generated Image with Minimalist Glowing Star Badge Watermark
+                    const replyHtml = `
+                        Le bhai, teri demand par image generate kar di hai! 🎨
+                        <div class="watermarked-img-wrapper">
+                            <img src="${imageUrl}" alt="Generated Image">
+                            <div class="nova-watermark-badge">
+                                <span class="nova-star-icon">✦</span>
+                            </div>
+                        </div>
+                    `;
+                    appendHtmlMessage(replyHtml, 'ai');
+                    scrollToBottom();
+                }, 1000);
+                return;
+            }
+
+            // Standard Multimodal Chat Flow
             let userContentParts = [];
             if (text) userContentParts.push({ text: text });
             currentImagesSnapshot.forEach(img => {
@@ -475,7 +571,7 @@
 
             messageHistory.push({ role: "user", content: userContentParts });
 
-            const loadingId = appendMessage("NOVA is evaluating...", 'ai loading');
+            const loadingId = appendMessage("NOVA is cooking...", 'ai loading');
             scrollToBottom();
 
             try {
