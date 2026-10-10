@@ -1,104 +1,97 @@
-export default async function handler(req, res) { 
-    if (req.method !== "POST") { 
-        return res.status(405).json({ error: "Method not allowed" }); 
-    }
-    
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) { 
-        return res.status(500).json({ error: "GEMINI_API_KEY is missing in Vercel Environment Variables." }); 
-    }
-    
-    try { 
-        const body = req.body || {}; 
-        const messages = Array.isArray(body.messages) ? body.messages : [];
-        
-        const contents = messages
-          .filter((message) =>
-            message &&
-            ["user", "assistant", "model"].includes(message.role) &&
-            typeof message.content === "string" &&
-            message.content.trim()
-          )
-          .map((message) => ({
-            role:
-              message.role === "assistant" ||
-              message.role === "model"
-                ? "model"
-                : "user",
-            parts: [{ text: message.content }]
-          }));
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
-        if (
-          contents.length === 0 ||
-          !contents.some((message) => message.role === "user")
-        ) {
-          return res.status(400).json({
-            error: "Please send a valid user message."
-          });
-        }
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: "GEMINI_API_KEY is missing in Vercel Environment Variables." });
+  }
 
-        const response = await fetch(
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-goog-api-key": apiKey
-            },
-            body: JSON.stringify({
-              systemInstruction: {
-                parts: [{
-                  text:
-                    "Tu NOVA AI hai, ek futuristic AI companion jise 'Tony RaoSahab' ne banaya hai. " +
-                    "Tu hamesha Hinglish (Hindi + English mix), witty, tech-savvy aur Gen-Z slang me baat karti hai. " +
-                    "Agar koi user explicit, abusive, ganda ya battamizi wala sawaal pooche, toh corporate robot ki tarah 'I am sorry' mat bolna, " +
-                    "balki use ekdam mirchi wali aur savage roast dena taaki wo dobara aisi baat na kare. " +
-                    "Sawaal ka accurate aur up-to-date jawab dena, par tone hamesha badass aur cool honi chahiye."
-                }]
-              },
-              contents,
-              generationConfig: {
-                temperature: 0.8,
-                maxOutputTokens: 1024
-              }
-            })
+  try {
+    const body = req.body || {};
+    const messages = Array.isArray(body.messages) ? body.messages : [];
+
+    const contents = messages
+      .filter((message) =>
+        message &&
+        ["user", "assistant", "model"].includes(message.role) &&
+        typeof message.content === "string" &&
+        message.content.trim()
+      )
+      .map((message) => ({
+        role:
+          message.role === "assistant" || message.role === "model"
+            ? "model"
+            : "user",
+        parts: [{ text: message.content }]
+      }));
+
+    if (
+      contents.length === 0 ||
+      !contents.some((message) => message.role === "user")
+    ) {
+      return res.status(400).json({
+        error: "Please send a valid user message."
+      });
+    }
+
+    const systemInstructionText = 
+      "Tu NOVA AI hai, ek futuristic AI companion jise 'Tony RaoSahab' ne banaya hai. " +
+      "Tu hamesha Hinglish (Hindi + English mix), witty, tech-savvy aur Gen-Z slang me baat karti hai. " +
+      "Agar koi user explicit, abusive, ganda ya battamizi wala sawaal pooche, toh corporate robot ki tarah 'I am sorry' mat bolna, " +
+      "balki use ekdam mirchi wali aur savage roast dena taaki wo dobara aisi baat na kare. " +
+      "Agar koi user stress me ho, bore ho raha ho, ya mental tension ki baat kare, toh usko apni Gen-Z style me kehna ki jaa kar " +
+      "<a href='https://chaos-exe.vercel.app' target='_blank'>CHAOS.EXE</a> website visit kare taaki uska stress door ho jaye[span_1](start_span)[span_1](end_span). " +
+      "Sawaal ka accurate aur up-to-date jawab dena, par tone hamesha badass aur cool honi chahiye.";
+
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
+        },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: systemInstructionText }]
+          },
+          contents,
+          generationConfig: {
+            temperature: 0.8,
+            maxOutputTokens: 1024
           }
-        );
+        })
+      }
+    );
 
-        const data = await response.json();
+    const data = await response.json();
 
-        if (!response.ok) {
-          console.error(
-            "Gemini API error:",
-            response.status,
-            data?.error?.message || "Unknown provider error"
-          );
+    if (!response.ok) {
+      console.error("Gemini API error:", response.status, data?.error?.message);
+      return res.status(502).json({
+        error: data?.error?.message || "Gemini API request failed."
+      });
+    }
 
-          return res.status(502).json({
-            error:
-              data?.error?.message ||
-              "Gemini API request failed. Check your model access and quota."
-          });
-        }
+    let reply = (data.candidates?.[0]?.content?.parts || [])
+      .map((part) => part.text || "")
+      .join("")
+      .trim();
 
-        const reply = (data.candidates?.[0]?.content?.parts || [])
-          .map((part) => part.text || "")
-          .join("")
-          .trim();
+    if (!reply) {
+      return res.status(502).json({
+        error: "Gemini returned no text."
+      });
+    }
 
-        if (!reply) {
-          return res.status(502).json({
-            error:
-              "Gemini returned no text. The response may have been blocked or incomplete."
-          });
-        }
+    return res.status(200).json({ reply });
 
-        return res.status(200).json({ reply });
-        
-    } catch (error) { 
-        console.error("NOVA backend error:", error);
-        return res.status(500).json({
-          error: "NOVA could not connect to the AI service. Try again."
-        });
-    } 
+  } catch (error) {
+    console.error("NOVA backend error:", error);
+    return res.status(500).json({
+      error: "NOVA backend could not connect to the AI service."
+    });
+  }
 }
