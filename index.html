@@ -122,6 +122,7 @@
         .header-buttons {
             display: flex;
             gap: 6px;
+            align-items: center;
         }
 
         .action-chip {
@@ -147,6 +148,34 @@
             background: linear-gradient(135deg, #7b2cbf, #ff007f);
             color: #ffffff;
             border: none;
+        }
+
+        /* User Profile Pill */
+        .user-pill {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            background: rgba(30, 15, 50, 0.7);
+            border: 1px solid var(--glass-border);
+            padding: 3px 10px 3px 3px;
+            border-radius: 20px;
+            backdrop-filter: blur(8px);
+        }
+
+        .user-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .user-signout {
+            background: transparent;
+            border: none;
+            color: #ff4d6d;
+            font-size: 0.65rem;
+            cursor: pointer;
+            font-weight: 600;
         }
 
         /* Chat Stream */
@@ -204,69 +233,6 @@
             margin-bottom: 8px;
             display: block;
             border: 1px solid rgba(199, 125, 255, 0.3);
-        }
-
-        /* Watermarked Image Container with Download Option */
-        .watermarked-img-wrapper {
-            position: relative;
-            display: inline-block;
-            width: 100%;
-            border-radius: 12px;
-            overflow: hidden;
-            margin-top: 6px;
-            border: 1px solid rgba(199, 125, 255, 0.4);
-            box-shadow: 0 0 15px rgba(157, 78, 221, 0.3);
-        }
-
-        .watermarked-img-wrapper img {
-            width: 100%;
-            display: block;
-        }
-
-        /* Minimalist Glowing Star Watermark Badge */
-        .nova-watermark-badge {
-            position: absolute;
-            bottom: 8px;
-            right: 8px;
-            background: rgba(10, 3, 20, 0.75);
-            border: 1px solid rgba(199, 125, 255, 0.6);
-            padding: 5px 7px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(6px);
-            box-shadow: 0 0 12px rgba(199, 125, 255, 0.7);
-            pointer-events: none;
-        }
-
-        .nova-star-icon {
-            color: #c77dff;
-            font-size: 0.95rem;
-            text-shadow: 0 0 8px #c77dff, 0 0 15px #9d4edd;
-            line-height: 1;
-        }
-
-        .download-img-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin-top: 8px;
-            background: rgba(157, 78, 221, 0.2);
-            border: 1px solid rgba(199, 125, 255, 0.4);
-            color: #e0aaff;
-            padding: 6px 12px;
-            border-radius: 14px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            backdrop-filter: blur(6px);
-            transition: background 0.2s;
-        }
-
-        .download-img-btn:active {
-            background: rgba(157, 78, 221, 0.4);
         }
 
         /* Preview container for selected images */
@@ -418,6 +384,13 @@
             <div class="header-buttons">
                 <button class="action-chip" id="installBtn">📲 Install</button>
                 <button class="action-chip" id="clearBtn">+ New Chat</button>
+                
+                <!-- Google Sign In Button & User Profile -->
+                <button class="action-chip" id="googleSignInBtn" style="background: linear-gradient(135deg, #4285F4, #34A853); color: white; border: none;">Sign In</button>
+                <div class="user-pill" id="userPill">
+                    <img id="userAvatar" class="user-avatar" src="" alt="Avatar">
+                    <button class="user-signout" id="googleSignOutBtn">Sign Out</button>
+                </div>
             </div>
         </div>
 
@@ -443,6 +416,68 @@
             </div>
         </div>
     </div>
+
+    <!-- Firebase & Auth SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBFZgeMPYIdpTR92DUkVFz-7h1X2xOdH3A",
+          authDomain: "nova-ai-57072.firebaseapp.com",
+          projectId: "nova-ai-57072",
+          storageBucket: "nova-ai-57072.firebasestorage.app",
+          messagingSenderId: "672770051843",
+          appId: "1:672770051843:web:ef21e65c3bc383d232a336",
+          measurementId: "G-3VGYTZTB9E"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        const googleSignInBtn = document.getElementById('googleSignInBtn');
+        const googleSignOutBtn = document.getElementById('googleSignOutBtn');
+        const userPill = document.getElementById('userPill');
+        const userAvatar = document.getElementById('userAvatar');
+
+        let currentUserToken = null;
+
+        googleSignInBtn.addEventListener('click', async () => {
+            try {
+                const result = await signInWithPopup(auth, provider);
+                currentUserToken = await result.user.getIdToken();
+            } catch (error) {
+                console.error("Auth Error:", error);
+            }
+        });
+
+        googleSignOutBtn.addEventListener('click', async () => {
+            await signOut(auth);
+            currentUserToken = null;
+        });
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                googleSignInBtn.style.display = 'none';
+                userPill.style.display = 'flex';
+                userAvatar.src = user.photoURL || '';
+                currentUserToken = await user.getIdToken();
+            } else {
+                googleSignInBtn.style.display = 'block';
+                userPill.style.display = 'none';
+                currentUserToken = null;
+            }
+        });
+
+        // Expose token getter globally for chat handling
+        window.getCurrentAuthToken = async () => {
+            if (auth.currentUser) {
+                return await auth.currentUser.getIdToken();
+            }
+            return currentUserToken;
+        };
+    </script>
 
     <script>
         const chatStream = document.getElementById('chatStream');
@@ -549,63 +584,6 @@
             previewContainer.innerHTML = '';
             scrollToBottom();
 
-            const lowerText = text.toLowerCase();
-            const isImageGenRequest = (lowerText.includes("generate") || lowerText.includes("bana do") || lowerText.includes("create") || lowerText.includes("draw") || lowerText.includes("image bana")) && currentImagesSnapshot.length === 0;
-
-            if (isImageGenRequest) {
-                const loadingId = appendMessage("NOVA is generating image...", 'ai loading');
-                scrollToBottom();
-
-                const promptQuery = encodeURIComponent(text);
-                // n=true hides pollinations branding watermark on their side
-                const imageUrl = `https://image.pollinations.ai/prompt/${promptQuery}?width=1024&height=1024&nologo=true`;
-
-                // Fetch blob to enable direct clean download feature
-                try {
-                    const imgBlobRes = await fetch(imageUrl);
-                    const blob = await imgBlobRes.blob();
-                    const localBlobUrl = URL.createObjectURL(blob);
-
-                    const loadingElem = document.getElementById(loadingId);
-                    if (loadingElem) loadingElem.remove();
-
-                    const replyHtml = `
-                        Le bhai, teri demand par image ready kar di hai! 🎨
-                        <div class="watermarked-img-wrapper">
-                            <img src="${localBlobUrl}" alt="Generated Image" id="genImg_${Date.now()}">
-                            <div class="nova-watermark-badge">
-                                <span class="nova-star-icon">✦</span>
-                            </div>
-                        </div>
-                        <a href="${localBlobUrl}" download="nova-rao-sahab-${Date.now()}.jpg" class="download-img-btn">
-                            📥 Download Image
-                        </a>
-                    `;
-                    appendHtmlMessage(replyHtml, 'ai');
-                    scrollToBottom();
-                } catch (e) {
-                    const loadingElem = document.getElementById(loadingId);
-                    if (loadingElem) loadingElem.remove();
-
-                    const replyHtml = `
-                        Le bhai, teri demand par image generate kar di hai! 🎨
-                        <div class="watermarked-img-wrapper">
-                            <img src="${imageUrl}" alt="Generated Image">
-                            <div class="nova-watermark-badge">
-                                <span class="nova-star-icon">✦</span>
-                            </div>
-                        </div>
-                        <a href="${imageUrl}" target="_blank" download class="download-img-btn">
-                            📥 Download Image
-                        </a>
-                    `;
-                    appendHtmlMessage(replyHtml, 'ai');
-                    scrollToBottom();
-                }
-                return;
-            }
-
-            // Standard Multimodal Chat Flow
             let userContentParts = [];
             if (text) userContentParts.push({ text: text });
             currentImagesSnapshot.forEach(img => {
@@ -620,15 +598,32 @@
             scrollToBottom();
 
             try {
+                // Get auth token if available for firewall validation
+                let token = null;
+                if (window.getCurrentAuthToken) {
+                    token = await window.getCurrentAuthToken();
+                }
+
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
                 const response = await fetch('/api/chat', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: headers,
                     body: JSON.stringify({ messages: messageHistory })
                 });
 
                 const data = await response.json();
                 const loadingElem = document.getElementById(loadingId);
                 if (loadingElem) loadingElem.remove();
+
+                if (response.status === 403) {
+                    appendMessage("⚠️ Firewall Blocked: Access restricted or unauthorized request.", 'ai');
+                    scrollToBottom();
+                    return;
+                }
 
                 if (data.reply) {
                     appendHtmlMessage(data.reply, 'ai');
@@ -693,6 +688,7 @@
         }
 
         sendBtn.addEventListener('click', handleSendMessage);
+        userInput.append?.('keypress', () => {}); // placeholder safe
         userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') handleSendMessage();
         });
