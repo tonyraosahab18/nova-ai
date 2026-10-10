@@ -49,7 +49,6 @@
             box-shadow: 0 0 40px rgba(157, 78, 221, 0.4);
         }
 
-        /* Background Mascot with Glowing Eyes Effect */
         .mascot-bg {
             position: absolute;
             top: 50%;
@@ -57,7 +56,7 @@
             transform: translate(-50%, -50%);
             width: 280px;
             height: 280px;
-            background: url('assets/nova-mascot.png') no-repeat center center;
+            background: url('nova-mascot.png') no-repeat center center;
             background-size: contain;
             opacity: 0.25;
             z-index: 0;
@@ -71,7 +70,6 @@
             100% { transform: translate(-50%, -50%) scale(1.05); opacity: 0.35; }
         }
 
-        /* Top Header */
         .top-header {
             padding: 15px 20px;
             background: rgba(10, 2, 20, 0.85);
@@ -106,7 +104,6 @@
             margin-top: 2px;
         }
 
-        /* Chat Messages Container */
         .chat-container {
             flex: 1;
             overflow-y: auto;
@@ -153,7 +150,6 @@
             box-shadow: 0 4px 15px rgba(123, 44, 191, 0.4);
         }
 
-        /* Input Bottom Bar */
         .input-bar {
             padding: 15px;
             background: rgba(10, 2, 20, 0.9);
@@ -205,26 +201,22 @@
 <body>
 
     <div class="container">
-        <!-- Background Glowing Mascot -->
         <div class="mascot-bg"></div>
 
-        <!-- Header -->
         <div class="top-header">
             <div class="brand-title">NOVA AI</div>
             <div class="tagline">System Online. Ready for Chaos. ⚡</div>
             <div class="creator-credit">Created by Tony RaoSahab</div>
         </div>
 
-        <!-- Chat Area -->
         <div class="chat-container" id="chatContainer">
             <div class="message ai">
                 Yo! Main NOVA hoon, teri personal Gen-Z AI companion. Bata aaj kya dimaag ka dahi karna hai ya koi serious sawaal hai? 😎
             </div>
         </div>
 
-        <!-- Input Bar -->
         <div class="input-bar">
-            <input type="text5" id="userInput" class="chat-input" placeholder="Type your command to NOVA..." autocomplete="off">
+            <input type="text" id="userInput" class="chat-input" placeholder="Type your command to NOVA..." autocomplete="off">
             <button class="send-btn" id="sendBtn">➤</button>
         </div>
     </div>
@@ -234,45 +226,61 @@
         const userInput = document.getElementById('userInput');
         const sendBtn = document.getElementById('sendBtn');
 
+        // Maintain conversation history for full multi-turn context
+        let messageHistory = [];
+
         async function handleSendMessage() {
             const text = userInput.value.trim();
             if (!text) return;
 
-            // Append User Message
+            // Append User Message visually
             appendMessage(text, 'user');
             userInput.value = '';
             scrollToBottom();
 
-            // Append Loading Bubble
-            const loadingId = appendMessage("NOVA is thinking & cooking a roast...", 'ai loading');
+            // Push to payload history
+            messageHistory.push({ role: "user", content: text });
+
+            // Append Loading Indicator
+            const loadingId = appendMessage("NOVA is cooking...", 'ai loading');
             scrollToBottom();
 
             try {
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text })
+                    body: JSON.stringify({ messages: messageHistory })
                 });
 
                 const data = await response.json();
                 
                 // Remove loading bubble
-                document.getElementById(loadingId).remove();
+                const loadingElem = document.getElementById(loadingId);
+                if (loadingElem) loadingElem.remove();
 
-                // Append AI Response
-                appendMessage(data.reply || "Kuch gadbad ho gayi bhai!", 'ai');
+                if (data.reply) {
+                    appendMessage(data.reply, 'ai');
+                    // Store AI response in history
+                    messageHistory.push({ role: "model", content: data.reply });
+                } else if (data.error) {
+                    appendMessage(`⚠️ Error: ${data.error}`, 'ai');
+                } else {
+                    appendMessage("Kuch gadbad ho gayi bhai! Proper response nahi mila.", 'ai');
+                }
+
                 scrollToBottom();
 
             } catch (error) {
-                document.getElementById(loadingId).remove();
-                appendMessage("Server ke sath connection toot gaya! Lagta hai network ka dahi ho gaya.", 'ai');
+                const loadingElem = document.getElementById(loadingId);
+                if (loadingElem) loadingElem.remove();
+                appendMessage("Server ke sath connection toot gaya! Check your network.", 'ai');
                 scrollToBottom();
             }
         }
 
         function appendMessage(text, sender) {
             const msgDiv = document.createElement('div');
-            const msgId = 'msg_' + Date.now() + Math.random();
+            const msgId = 'msg_' + Date.now() + Math.random().toString(36).substr(2, 4);
             msgDiv.id = msgId;
             msgDiv.className = `message ${sender}`;
             msgDiv.textContent = text;
