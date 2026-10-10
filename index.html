@@ -206,7 +206,7 @@
             border: 1px solid rgba(199, 125, 255, 0.3);
         }
 
-        /* Watermarked Image Container */
+        /* Watermarked Image Container with Download Option */
         .watermarked-img-wrapper {
             position: relative;
             display: inline-block;
@@ -223,20 +223,20 @@
             display: block;
         }
 
-        /* Minimalist Glowing Star Watermark Badge (No Name) */
+        /* Minimalist Glowing Star Watermark Badge */
         .nova-watermark-badge {
             position: absolute;
             bottom: 8px;
             right: 8px;
-            background: rgba(10, 3, 20, 0.7);
-            border: 1px solid rgba(199, 125, 255, 0.5);
+            background: rgba(10, 3, 20, 0.75);
+            border: 1px solid rgba(199, 125, 255, 0.6);
             padding: 5px 7px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             backdrop-filter: blur(6px);
-            box-shadow: 0 0 12px rgba(199, 125, 255, 0.6);
+            box-shadow: 0 0 12px rgba(199, 125, 255, 0.7);
             pointer-events: none;
         }
 
@@ -245,6 +245,28 @@
             font-size: 0.95rem;
             text-shadow: 0 0 8px #c77dff, 0 0 15px #9d4edd;
             line-height: 1;
+        }
+
+        .download-img-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            background: rgba(157, 78, 221, 0.2);
+            border: 1px solid rgba(199, 125, 255, 0.4);
+            color: #e0aaff;
+            padding: 6px 12px;
+            border-radius: 14px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            backdrop-filter: blur(6px);
+            transition: background 0.2s;
+        }
+
+        .download-img-btn:active {
+            background: rgba(157, 78, 221, 0.4);
         }
 
         /* Preview container for selected images */
@@ -401,7 +423,7 @@
 
         <div class="chat-stream" id="chatStream">
             <div class="msg-bubble ai">
-                System online. RaoSahab ki NOVA active hai. Photo daal, evaluate karwa, ya image generate karne ka bol! ⚡
+                System online. RaoSahab ki NOVA active hai. Bol kya scene hai? ⚡
             </div>
         </div>
 
@@ -437,7 +459,6 @@
         let selectedImages = [];
         let deferredPrompt;
 
-        // PWA Install Prompt
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
@@ -453,7 +474,6 @@
             }
         });
 
-        // Image Attachment Handler
         attachBtn.addEventListener('click', () => imageInput.click());
 
         imageInput.addEventListener('change', (e) => {
@@ -493,7 +513,6 @@
             renderPreviews();
         }
 
-        // Voice Speech-to-Text Integration
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const recognition = new SpeechRecognition();
@@ -538,13 +557,36 @@
                 scrollToBottom();
 
                 const promptQuery = encodeURIComponent(text);
+                // n=true hides pollinations branding watermark on their side
                 const imageUrl = `https://image.pollinations.ai/prompt/${promptQuery}?width=1024&height=1024&nologo=true`;
 
-                setTimeout(() => {
+                // Fetch blob to enable direct clean download feature
+                try {
+                    const imgBlobRes = await fetch(imageUrl);
+                    const blob = await imgBlobRes.blob();
+                    const localBlobUrl = URL.createObjectURL(blob);
+
                     const loadingElem = document.getElementById(loadingId);
                     if (loadingElem) loadingElem.remove();
 
-                    // Render Generated Image with Minimalist Glowing Star Badge Watermark
+                    const replyHtml = `
+                        Le bhai, teri demand par image ready kar di hai! 🎨
+                        <div class="watermarked-img-wrapper">
+                            <img src="${localBlobUrl}" alt="Generated Image" id="genImg_${Date.now()}">
+                            <div class="nova-watermark-badge">
+                                <span class="nova-star-icon">✦</span>
+                            </div>
+                        </div>
+                        <a href="${localBlobUrl}" download="nova-rao-sahab-${Date.now()}.jpg" class="download-img-btn">
+                            📥 Download Image
+                        </a>
+                    `;
+                    appendHtmlMessage(replyHtml, 'ai');
+                    scrollToBottom();
+                } catch (e) {
+                    const loadingElem = document.getElementById(loadingId);
+                    if (loadingElem) loadingElem.remove();
+
                     const replyHtml = `
                         Le bhai, teri demand par image generate kar di hai! 🎨
                         <div class="watermarked-img-wrapper">
@@ -553,10 +595,13 @@
                                 <span class="nova-star-icon">✦</span>
                             </div>
                         </div>
+                        <a href="${imageUrl}" target="_blank" download class="download-img-btn">
+                            📥 Download Image
+                        </a>
                     `;
                     appendHtmlMessage(replyHtml, 'ai');
                     scrollToBottom();
-                }, 1000);
+                }
                 return;
             }
 
@@ -658,7 +703,7 @@
             previewContainer.innerHTML = '';
             chatStream.innerHTML = `
                 <div class="msg-bubble ai">
-                    Session wiped. RaoSahab ki NOVA wapas online hai. Next command ya image dijiye! ⚡
+                    Session wiped. RaoSahab ki NOVA wapas online hai. Bol kya scene hai? ⚡
                 </div>
             `;
         });
