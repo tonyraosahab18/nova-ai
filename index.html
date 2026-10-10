@@ -553,11 +553,10 @@
         </div>
     </div>
 
-    <!-- Firebase, Auth & Firestore SDKs -->
+    <!-- Firebase Auth SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, setDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyBFZgeMPYIdpTR92DUkVFz-7h1X2xOdH3A",
@@ -571,7 +570,6 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
         const googleSignInBtn = document.getElementById('googleSignInBtn');
@@ -580,8 +578,6 @@
         const userAvatar = document.getElementById('userAvatar');
 
         let currentUserToken = null;
-        window.currentUserId = null;
-        window.currentChatSessionId = 'session_' + Date.now();
 
         googleSignInBtn.addEventListener('click', async () => {
             try {
@@ -595,8 +591,6 @@
         googleSignOutBtn.addEventListener('click', async () => {
             await signOut(auth);
             currentUserToken = null;
-            window.currentUserId = null;
-            document.getElementById('sidebarHistoryList').innerHTML = '';
         });
 
         onAuthStateChanged(auth, async (user) => {
@@ -605,17 +599,10 @@
                 userPill.style.display = 'flex';
                 userAvatar.src = user.photoURL || '';
                 currentUserToken = await user.getIdToken();
-                window.currentUserId = user.uid;
-                
-                if (window.loadUserSessionsList) {
-                    window.loadUserSessionsList(user.uid);
-                }
             } else {
                 googleSignInBtn.style.display = 'block';
                 userPill.style.display = 'none';
                 currentUserToken = null;
-                window.currentUserId = null;
-                document.getElementById('sidebarHistoryList').innerHTML = '';
             }
         });
 
@@ -624,107 +611,6 @@
                 return await auth.currentUser.getIdToken();
             }
             return currentUserToken;
-        };
-
-        // Firestore Session & Topic Management
-        window.saveMessageToFirestore = async (role, textContent) => {
-            if (!window.currentUserId) return;
-            try {
-                // Save message
-                await addDoc(collection(db, "chats"), {
-                    userId: window.currentUserId,
-                    sessionId: window.currentChatSessionId,
-                    role: role,
-                    content: textContent,
-                    createdAt: serverTimestamp()
-                });
-
-                // If it's the first user message, set it as session title topic
-                if (role === 'user') {
-                    const sessionRef = doc(db, "sessions", window.currentChatSessionId);
-                    const sessSnap = await getDoc(sessionRef);
-                    if (!sessSnap.exists()) {
-                        const titleText = textContent.length > 32 ? textContent.substring(0, 32) + '...' : textContent;
-                        await setDoc(sessionRef, {
-                            userId: window.currentUserId,
-                            title: titleText,
-                            createdAt: serverTimestamp()
-                        });
-                    }
-                }
-
-                if (window.loadUserSessionsList) {
-                    window.loadUserSessionsList(window.currentUserId);
-                }
-            } catch (e) {
-                console.error("Error saving message:", e);
-            }
-        };
-
-        window.loadUserSessionsList = async (uid) => {
-            try {
-                const q = query(collection(db, "sessions"), where("userId", "==", uid), orderBy("createdAt", "desc"));
-                const querySnapshot = await getDocs(q);
-                
-                const historyList = document.getElementById('sidebarHistoryList');
-                historyList.innerHTML = '';
-                
-                if (querySnapshot.empty) {
-                    historyList.innerHTML = '<div style="color: rgba(224,170,255,0.4); font-size: 0.75rem; text-align: center; margin-top: 20px;">Koi history nahi hai abhi.</div>';
-                    return;
-                }
-
-                querySnapshot.forEach((docSnap) => {
-                    const sess = docSnap.data();
-                    const sId = docSnap.id;
-
-                    const item = document.createElement('div');
-                    item.className = `history-item ${sId === window.currentChatSessionId ? 'active' : ''}`;
-                    item.textContent = sess.title || 'Nova Chat Session';
-                    item.onclick = () => {
-                        window.switchChatSession(sId, uid);
-                    };
-                    historyList.appendChild(item);
-                });
-            } catch (e) {
-                console.error("Error loading sessions:", e);
-            }
-        };
-
-        window.switchChatSession = async (sessionId, uid) => {
-            window.currentChatSessionId = sessionId;
-            const chatStream = document.getElementById('chatStream');
-            chatStream.innerHTML = `
-                <div class="msg-bubble ai">
-                    Session loaded. Bol kya scene hai? ⚡
-                </div>
-            `;
-            window.messageHistory = [];
-
-            try {
-                const q = query(collection(db, "chats"), where("userId", "==", uid), where("sessionId", "==", sessionId), orderBy("createdAt", "asc"));
-                const querySnapshot = await getDocs(q);
-
-                querySnapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    if (data.role === 'user') {
-                        window.appendUserMessage(data.content, []);
-                        window.messageHistory.push({ role: "user", content: [{ text: data.content }] });
-                    } else if (data.role === 'model') {
-                        window.appendHtmlMessage(data.content, 'ai');
-                        window.messageHistory.push({ role: "model", content: [{ text: data.content }] });
-                    }
-                });
-                chatStream.scrollTop = chatStream.scrollHeight;
-                document.getElementById('sidebarDrawer').classList.remove('open');
-                document.getElementById('sidebarBackdrop').classList.remove('show');
-                
-                if (window.loadUserSessionsList) {
-                    window.loadUserSessionsList(uid);
-                }
-            } catch (e) {
-                console.error("Error switching session:", e);
-            }
         };
     </script>
 
@@ -737,6 +623,7 @@
         const sidebarBackdrop = document.getElementById('sidebarBackdrop');
         const sidebarClose = document.getElementById('sidebarClose');
         const sidebarNewChat = document.getElementById('sidebarNewChat');
+        const sidebarHistoryList = document.getElementById('sidebarHistoryList');
         const installBtn = document.getElementById('installBtn');
         const attachBtn = document.getElementById('attachBtn');
         const imageInput = document.getElementById('imageInput');
@@ -746,8 +633,82 @@
         window.messageHistory = [];
         let selectedImages = [];
         let deferredPrompt;
+        let currentSessionId = localStorage.getItem('nova_active_session') || 'session_' + Date.now();
+
+        // Load sessions into drawer
+        function renderSidebarSessions() {
+            let sessions = JSON.parse(localStorage.getItem('nova_sessions') || '{}');
+            sidebarHistoryList.innerHTML = '';
+            
+            const sessionKeys = Object.keys(sessions);
+            if (sessionKeys.length === 0) {
+                sidebarHistoryList.innerHTML = '<div style="color: rgba(224,170,255,0.4); font-size: 0.75rem; text-align: center; margin-top: 20px;">Koi history nahi hai abhi.</div>';
+                return;
+            }
+
+            sessionKeys.sort().reverse().forEach(sId => {
+                const sess = sessions[sId];
+                const item = document.createElement('div');
+                item.className = `history-item ${sId === currentSessionId ? 'active' : ''}`;
+                item.textContent = sess.title || 'Nova Chat Session';
+                item.onclick = () => {
+                    switchSession(sId);
+                };
+                sidebarHistoryList.appendChild(item);
+            });
+        }
+
+        // Load active session messages
+        function loadCurrentSession() {
+            let sessions = JSON.parse(localStorage.getItem('nova_sessions') || '{}');
+            chatStream.innerHTML = '';
+            window.messageHistory = [];
+
+            if (sessions[currentSessionId] && sessions[currentSessionId].messages) {
+                sessions[currentSessionId].messages.forEach(msg => {
+                    if (msg.role === 'user') {
+                        appendUserMessage(msg.text, []);
+                        window.messageHistory.push({ role: "user", content: [{ text: msg.text }] });
+                    } else if (msg.role === 'model') {
+                        appendHtmlMessage(msg.text, 'ai');
+                        window.messageHistory.push({ role: "model", content: [{ text: msg.text }] });
+                    }
+                });
+            } else {
+                chatStream.innerHTML = `
+                    <div class="msg-bubble ai">
+                        System online. RaoSahab ki NOVA active hai. Bol kya scene hai? ⚡
+                    </div>
+                `;
+            }
+            chatStream.scrollTop = chatStream.scrollHeight;
+        }
+
+        function saveMessageToStorage(role, text) {
+            let sessions = JSON.parse(localStorage.getItem('nova_sessions') || '{}');
+            if (!sessions[currentSessionId]) {
+                sessions[currentSessionId] = {
+                    title: text.length > 30 ? text.substring(0, 30) + '...' : text,
+                    messages: []
+                };
+            }
+            sessions[currentSessionId].messages.push({ role, text });
+            localStorage.setItem('nova_sessions', JSON.stringify(sessions));
+            localStorage.setItem('nova_active_session', currentSessionId);
+            renderSidebarSessions();
+        }
+
+        function switchSession(sId) {
+            currentSessionId = sId;
+            localStorage.setItem('nova_active_session', currentSessionId);
+            loadCurrentSession();
+            renderSidebarSessions();
+            sidebarDrawer.classList.remove('open');
+            sidebarBackdrop.classList.remove('show');
+        }
 
         menuToggleBtn.addEventListener('click', () => {
+            renderSidebarSessions();
             sidebarDrawer.classList.add('open');
             sidebarBackdrop.classList.add('show');
         });
@@ -763,7 +724,8 @@
         });
 
         sidebarNewChat.addEventListener('click', () => {
-            window.currentChatSessionId = 'session_' + Date.now();
+            currentSessionId = 'session_' + Date.now();
+            localStorage.setItem('nova_active_session', currentSessionId);
             window.messageHistory = [];
             selectedImages = [];
             previewContainer.innerHTML = '';
@@ -774,10 +736,12 @@
             `;
             sidebarDrawer.classList.remove('open');
             sidebarBackdrop.classList.remove('show');
-            if (window.currentUserId && window.loadUserSessionsList) {
-                window.loadUserSessionsList(window.currentUserId);
-            }
+            renderSidebarSessions();
         });
+
+        // Initialize on load
+        loadCurrentSession();
+        renderSidebarSessions();
 
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
@@ -862,7 +826,7 @@
             if (!text && selectedImages.length === 0) return;
 
             let currentImagesSnapshot = [...selectedImages];
-            window.appendUserMessage(text, currentImagesSnapshot);
+            appendUserMessage(text, currentImagesSnapshot);
             
             userInput.value = '';
             selectedImages = [];
@@ -878,9 +842,8 @@
             });
 
             window.messageHistory.push({ role: "user", content: userContentParts });
-
-            if (text && window.saveMessageToFirestore) {
-                window.saveMessageToFirestore('user', text);
+            if (text) {
+                saveMessageToStorage('user', text);
             }
 
             const loadingId = appendMessage("NOVA is cooking...", 'ai loading');
@@ -914,12 +877,9 @@
                 }
 
                 if (data.reply) {
-                    window.appendHtmlMessage(data.reply, 'ai');
+                    appendHtmlMessage(data.reply, 'ai');
                     window.messageHistory.push({ role: "model", content: data.reply });
-
-                    if (window.saveMessageToFirestore) {
-                        window.saveMessageToFirestore('model', data.reply);
-                    }
+                    saveMessageToStorage('model', data.reply);
                 } else if (data.error) {
                     appendMessage(`⚠️ Error: ${data.error}`, 'ai');
                 } else {
@@ -936,7 +896,7 @@
             }
         }
 
-        window.appendUserMessage = function(text, images) {
+        function appendUserMessage(text, images) {
             const msgDiv = document.createElement('div');
             msgDiv.className = 'msg-bubble user';
             
@@ -963,7 +923,7 @@
             return msgId;
         }
 
-        window.appendHtmlMessage = function(html, sender) {
+        function appendHtmlMessage(html, sender) {
             const msgDiv = document.createElement('div');
             const msgId = 'msg_' + Date.now() + Math.random().toString(36).substr(2, 4);
             msgDiv.id = msgId;
