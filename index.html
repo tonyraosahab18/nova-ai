@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NOVA AI | Powered by RaoSahab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-dark: #05010b;
@@ -18,8 +21,9 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             -webkit-tap-highlight-color: transparent;
+            letter-spacing: -0.01em;
         }
 
         body {
@@ -109,16 +113,16 @@
         }
 
         .brand-name {
-            font-size: 1.3rem;
+            font-size: 1.25rem;
             font-weight: 800;
-            letter-spacing: 2px;
+            letter-spacing: 0.05em;
             color: #ffffff;
             text-shadow: 0 0 12px rgba(199, 125, 255, 0.8);
         }
 
         .pulse-dot {
-            width: 8px;
-            height: 8px;
+            width: 7px;
+            height: 7px;
             background-color: #00ffcc;
             border-radius: 50%;
             box-shadow: 0 0 8px #00ffcc;
@@ -132,11 +136,11 @@
         }
 
         .status-tag {
-            font-size: 0.65rem;
+            font-size: 0.68rem;
             color: var(--neon-glow);
             opacity: 0.85;
             font-weight: 500;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.02em;
             margin-top: 1px;
         }
 
@@ -207,7 +211,7 @@
             width: 80%;
             max-width: 320px;
             height: 100dvh;
-            background: rgba(8, 2, 18, 0.95);
+            background: rgba(8, 2, 18, 0.96);
             backdrop-filter: blur(20px);
             border-right: 1px solid var(--glass-border);
             z-index: 100;
@@ -230,17 +234,17 @@
         }
 
         .sidebar-title {
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 700;
             color: #e0aaff;
-            letter-spacing: 1px;
+            letter-spacing: 0.03em;
         }
 
         .sidebar-close {
             background: transparent;
             border: none;
             color: #c77dff;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             cursor: pointer;
         }
 
@@ -249,9 +253,9 @@
             background: linear-gradient(135deg, #7b2cbf, #9d4edd);
             color: white;
             border: none;
-            padding: 10px;
+            padding: 11px;
             border-radius: 12px;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             font-weight: 600;
             cursor: pointer;
             text-align: center;
@@ -272,7 +276,8 @@
             background: rgba(20, 8, 35, 0.6);
             border: 1px solid rgba(199, 125, 255, 0.1);
             border-radius: 12px;
-            font-size: 0.82rem;
+            font-size: 0.84rem;
+            font-weight: 500;
             color: #f1e6ff;
             cursor: pointer;
             white-space: nowrap;
@@ -316,11 +321,12 @@
         }
 
         .msg-bubble {
-            max-width: 85%;
-            padding: 13px 17px;
+            max-width: 86%;
+            padding: 14px 18px;
             border-radius: 18px;
-            font-size: 0.9rem;
-            line-height: 1.5;
+            font-size: 0.92rem;
+            line-height: 1.55;
+            font-weight: 400;
             backdrop-filter: blur(6px);
             word-wrap: break-word;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
@@ -336,7 +342,7 @@
 
         .msg-bubble.ai a {
             color: #ff4d6d;
-            font-weight: bold;
+            font-weight: 600;
             text-decoration: underline;
         }
 
@@ -424,7 +430,8 @@
             background: transparent;
             border: none;
             color: #ffffff;
-            font-size: 0.92rem;
+            font-size: 0.94rem;
+            font-weight: 400;
             outline: none;
             padding: 8px 4px;
         }
@@ -475,9 +482,9 @@
 
         .footer-branding {
             text-align: center;
-            font-size: 0.65rem;
+            font-size: 0.68rem;
             color: rgba(224, 170, 255, 0.4);
-            letter-spacing: 0.8px;
+            letter-spacing: 0.04em;
             font-weight: 500;
             margin-top: 2px;
         }
@@ -485,6 +492,7 @@
         .footer-branding a {
             color: #c77dff;
             text-decoration: none;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -635,14 +643,13 @@
         let deferredPrompt;
         let currentSessionId = localStorage.getItem('nova_active_session') || 'session_' + Date.now();
 
-        // Load sessions into drawer
         function renderSidebarSessions() {
             let sessions = JSON.parse(localStorage.getItem('nova_sessions') || '{}');
             sidebarHistoryList.innerHTML = '';
             
             const sessionKeys = Object.keys(sessions);
             if (sessionKeys.length === 0) {
-                sidebarHistoryList.innerHTML = '<div style="color: rgba(224,170,255,0.4); font-size: 0.75rem; text-align: center; margin-top: 20px;">Koi history nahi hai abhi.</div>';
+                sidebarHistoryList.innerHTML = '<div style="color: rgba(224,170,255,0.4); font-size: 0.78rem; text-align: center; margin-top: 20px;">Koi history nahi hai abhi.</div>';
                 return;
             }
 
@@ -658,7 +665,6 @@
             });
         }
 
-        // Load active session messages
         function loadCurrentSession() {
             let sessions = JSON.parse(localStorage.getItem('nova_sessions') || '{}');
             chatStream.innerHTML = '';
@@ -739,7 +745,6 @@
             renderSidebarSessions();
         });
 
-        // Initialize on load
         loadCurrentSession();
         renderSidebarSessions();
 
