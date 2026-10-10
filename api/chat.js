@@ -3,17 +3,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // --- FIREWALL & SECURITY LAYER ---
   const authHeader = req.headers.authorization;
-  
-  // Optional security check example: 
-  // Agar tu chahta hai ki sirf signed-in users hi chat karein, toh token check compulsory kar sakta hai.
-  // Abhi ke liye firewall basic request validation aur rate limiting / header inspection kar raha hai.
   const userAgent = req.headers['user-agent'] || '';
   if (!userAgent || userAgent.includes('curl') && !authHeader) {
     return res.status(403).json({ error: "Firewall Blocked: Suspicious or unauthorized client request." });
   }
-  // ---------------------------------
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -52,7 +46,7 @@ export default async function handler(req, res) {
       "Tera vibe ekdum badass, witty, aur Hinglish wali hai. Jab user koi image upload kare aur evaluation mange, " +
       "toh uska ekdum accurate analysis karna. Agar evaluation acchi ho toh cool tareeqe se appreciate karna, aur agar koi aisi waisi photo ho ya faltu bakchodi kare, toh mirchi wala roast dena. " +
       "Bar-bar khud ko introduce mat karna. " +
-      "Agar koi user stress me ho, bore ho raha ho, toh usko hamari website <a href='https://chaos-exe.vercel.app' target='_blank'>CHAOS.EXE</a> visit karne ko kehna. " +
+      "IMPORTANT: Bar-bar CHAOS.EXE ka link mat dena! Sirf aur sirf tabhi CHAOS.EXE (<a href='https://chaos-exe.vercel.app' target='_blank'>CHAOS.EXE</a>) visit karne ko kehna jab user explicitly bole ki wo bohot stress me hai, pareshan hai, ya bore ho raha hai. Faltu me har message me promote mat karna. " +
       "Swag aur tone hamesha top-notch honi chahiye aur response hamesha Hindi (Latin) yani Hinglish me hona chahiye.";
 
     const response = await fetch(
