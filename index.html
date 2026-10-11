@@ -394,6 +394,47 @@
             border: 1px solid rgba(199, 125, 255, 0.4);
         }
 
+        /* Custom Neon Time/Date Graphic Widget Card */
+        .neon-time-widget {
+            background: rgba(20, 8, 35, 0.85);
+            border: 1px solid var(--neon-glow);
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 0 20px rgba(199, 125, 255, 0.25);
+        }
+
+        .widget-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .widget-time-display {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #ffffff;
+            text-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        .widget-date-display {
+            font-size: 0.8rem;
+            color: var(--neon-glow);
+            font-weight: 700;
+        }
+
+        .widget-timezone {
+            font-size: 0.72rem;
+            color: rgba(224, 170, 255, 0.6);
+        }
+
+        .widget-clock-icon {
+            font-size: 2.2rem;
+        }
+
         .preview-container {
             padding: 6px 18px 0;
             display: flex;
@@ -629,9 +670,7 @@
                 userPill.style.display = 'flex';
                 userAvatar.src = user.photoURL || '';
                 currentUserToken = await user.getIdToken();
-                if(user.displayName) {
-                    localStorage.setItem('nova_user_name', user.displayName);
-                }
+                if(user.displayName) localStorage.setItem('nova_user_name', user.displayName);
             } else {
                 googleSignInBtn.style.display = 'block';
                 userPill.style.display = 'none';
@@ -675,23 +714,13 @@
             return user ? `nova_sessions_${user.uid}` : null;
         }
 
-        let guestSessionStorage = {
-            'session_guest': { title: 'Current Session', messages: [] }
-        };
+        let guestSessionStorage = { 'session_guest': { title: 'Current Session', messages: [] } };
         let currentSessionId = 'session_' + Date.now();
 
         const welcomeMessagesPool = [
-            "System online. NOVA active hai. Jyada bakchodi ki toh seedha roast khayega, baaki agar dhang ki baat karni hai toh bol, kya scene hai? ⚡",
-            "System fully loaded! AI core online. Bataa aaj kya cook karna hai? 🚀",
-            "NOVA operational. Focus high hai, excuses zero. Bata boss, kya task niptana hai? 🔥",
-            "System connected. Standby mode off. Koi script, bug ya idea hai toh drop kar, abhi decode karte hain! ⚡",
-            "NOVA AI online. Dimaag tez, tone savage! Kya chal raha hai, bata? 🎯"
-        ];
-
-        const offlineRepliesPool = [
-            "Oye! Tera net band hai lagta hai. Offline mode active hai—pehle data on kar, tab tak bata main tera mirror image banke kya soch raha hoon? 🔌😎",
-            "Connection lost! Network ne tera sath chhod diya. Offline mode me bhi tera digital twin ready hai. Data on kar fir aag lagate hain! ⚡",
-            "System offline detected! Data connect kar warna main apne mirror-mode se tere saare secrets decode kar doonga. 🕶️"
+            "System online. NOVA active hai! ⚡ Jyada bakchodi ki toh seedha roast khayega, baaki bol kya scene hai? 😎🔥",
+            "System fully loaded! AI core online. Bataa aaj kya cook karna hai? 🚀✨",
+            "NOVA operational. Focus high, excuses zero. Bata boss, kya task niptana hai? 🔥🎯"
         ];
 
         const roastLabels = { "1": "Mild 🌿", "2": "Savage ⚡", "3": "Nuclear 💥" };
@@ -701,10 +730,6 @@
 
         function getRandomWelcomeMessage() {
             return welcomeMessagesPool[Math.floor(Math.random() * welcomeMessagesPool.length)];
-        }
-
-        function getRandomOfflineReply() {
-            return offlineRepliesPool[Math.floor(Math.random() * offlineRepliesPool.length)];
         }
 
         function updateNetworkStatus() {
@@ -725,21 +750,12 @@
         window.renderSidebarSessions = function() {
             const storageKey = getStorageKey();
             sidebarHistoryList.innerHTML = '';
-            
             if (!storageKey) {
-                sidebarHistoryList.innerHTML = '<div style="color: rgba(224,170,255,0.6); font-size: 0.8rem; text-align: center; margin-top: 25px; font-weight: 600; line-height: 1.5;">🔒 Guest Mode Active<br><span style="font-size:0.7rem; opacity:0.7;">Sign in karke history save karein!</span></div>';
+                sidebarHistoryList.innerHTML = '<div style="color: rgba(224,170,255,0.6); font-size: 0.8rem; text-align: center; margin-top: 25px; font-weight: 600;">🔒 Guest Mode Active</div>';
                 return;
             }
-
             let sessions = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            const sessionKeys = Object.keys(sessions);
-            
-            if (sessionKeys.length === 0) {
-                sidebarHistoryList.innerHTML = '<div style="color: rgba(224,170,255,0.5); font-size: 0.8rem; text-align: center; margin-top: 20px; font-weight: 600;">Koi history nahi hai abhi.</div>';
-                return;
-            }
-
-            sessionKeys.sort().reverse().forEach(sId => {
+            Object.keys(sessions).sort().reverse().forEach(sId => {
                 const sess = sessions[sId];
                 const item = document.createElement('div');
                 item.className = `history-item ${sId === currentSessionId ? 'active' : ''}`;
@@ -753,19 +769,11 @@
             const storageKey = getStorageKey();
             chatStream.innerHTML = '';
             window.messageHistory = [];
-
-            let sessions = {};
-            if (storageKey) {
-                sessions = JSON.parse(localStorage.getItem(storageKey) || '{}');
-                if (Object.keys(sessions).length > 0 && !sessions[currentSessionId]) {
-                    currentSessionId = Object.keys(sessions).sort().reverse()[0];
-                }
-            } else {
-                sessions = guestSessionStorage;
-                currentSessionId = 'session_guest';
+            let sessions = storageKey ? JSON.parse(localStorage.getItem(storageKey) || '{}') : guestSessionStorage;
+            if (storageKey && Object.keys(sessions).length > 0 && !sessions[currentSessionId]) {
+                currentSessionId = Object.keys(sessions).sort().reverse()[0];
             }
-
-            if (sessions[currentSessionId] && sessions[currentSessionId].messages && sessions[currentSessionId].messages.length > 0) {
+            if (sessions[currentSessionId]?.messages?.length > 0) {
                 sessions[currentSessionId].messages.forEach(msg => {
                     if (msg.role === 'user') {
                         appendUserMessage(msg.text, []);
@@ -776,8 +784,7 @@
                     }
                 });
             } else {
-                const welcomeMsg = getRandomWelcomeMessage();
-                appendHtmlMessage(welcomeMsg, 'ai');
+                appendHtmlMessage(getRandomWelcomeMessage(), 'ai');
             }
             chatStream.scrollTop = chatStream.scrollHeight;
         }
@@ -785,20 +792,12 @@
         function saveMessageToStorage(role, text) {
             const storageKey = getStorageKey();
             if (!storageKey) {
-                if (!guestSessionStorage[currentSessionId]) {
-                    guestSessionStorage[currentSessionId] = { title: text.substring(0, 30), messages: [] };
-                }
+                if (!guestSessionStorage[currentSessionId]) guestSessionStorage[currentSessionId] = { title: text.substring(0, 30), messages: [] };
                 guestSessionStorage[currentSessionId].messages.push({ role, text });
                 return;
             }
-
             let sessions = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            if (!sessions[currentSessionId]) {
-                sessions[currentSessionId] = {
-                    title: text.length > 30 ? text.substring(0, 30) + '...' : text,
-                    messages: []
-                };
-            }
+            if (!sessions[currentSessionId]) sessions[currentSessionId] = { title: text.substring(0, 30), messages: [] };
             sessions[currentSessionId].messages.push({ role, text });
             localStorage.setItem(storageKey, JSON.stringify(sessions));
             window.renderSidebarSessions();
@@ -812,31 +811,16 @@
             sidebarBackdrop.classList.remove('show');
         }
 
-        menuToggleBtn.addEventListener('click', () => {
-            window.renderSidebarSessions();
-            sidebarDrawer.classList.add('open');
-            sidebarBackdrop.classList.add('show');
-        });
-
-        sidebarClose.addEventListener('click', () => {
-            sidebarDrawer.classList.remove('open');
-            sidebarBackdrop.classList.remove('show');
-        });
-
-        sidebarBackdrop.addEventListener('click', () => {
-            sidebarDrawer.classList.remove('open');
-            sidebarBackdrop.classList.remove('show');
-        });
+        menuToggleBtn.addEventListener('click', () => { window.renderSidebarSessions(); sidebarDrawer.classList.add('open'); sidebarBackdrop.classList.add('show'); });
+        sidebarClose.addEventListener('click', () => { sidebarDrawer.classList.remove('open'); sidebarBackdrop.classList.remove('show'); });
+        sidebarBackdrop.addEventListener('click', () => { sidebarDrawer.classList.remove('open'); sidebarBackdrop.classList.remove('show'); });
 
         sidebarNewChat.addEventListener('click', () => {
             currentSessionId = 'session_' + Date.now();
             window.messageHistory = [];
             selectedImages = [];
             previewContainer.innerHTML = '';
-            
-            const welcomeMsg = getRandomWelcomeMessage();
-            chatStream.innerHTML = `<div class="msg-bubble ai">${welcomeMsg}</div>`;
-            
+            chatStream.innerHTML = `<div class="msg-bubble ai">${getRandomWelcomeMessage()}</div>`;
             sidebarDrawer.classList.remove('open');
             sidebarBackdrop.classList.remove('show');
             window.renderSidebarSessions();
@@ -845,35 +829,12 @@
         window.loadCurrentSession();
         window.renderSidebarSessions();
 
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            installBtn.style.display = 'block';
-        });
-
-        installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') installBtn.style.display = 'none';
-                deferredPrompt = null;
-            }
-        });
-
         attachBtn.addEventListener('click', () => imageInput.click());
-
         imageInput.addEventListener('change', (e) => {
-            const files = Array.from(e.target.files);
-            if (!files.length) return;
-
-            files.forEach(file => {
+            Array.from(e.target.files).forEach(file => {
                 const reader = new FileReader();
-                reader.onload = (uploadEvent) => {
-                    const base64String = uploadEvent.target.result;
-                    selectedImages.push({
-                        mimeType: file.type || "image/jpeg",
-                        data: base64String.split(',')[1]
-                    });
+                reader.onload = (ev) => {
+                    selectedImages.push({ mimeType: file.type || "image/jpeg", data: ev.target.result.split(',')[1] });
                     renderPreviews();
                 };
                 reader.readAsDataURL(file);
@@ -883,176 +844,122 @@
 
         function renderPreviews() {
             previewContainer.innerHTML = '';
-            selectedImages.forEach((imgObj, index) => {
+            selectedImages.forEach((img, idx) => {
                 const wrap = document.createElement('div');
                 wrap.className = 'preview-thumb-wrap';
-                wrap.innerHTML = `
-                    <img src="data:${imgObj.mimeType};base64,${imgObj.data}" alt="preview">
-                    <button class="preview-remove" onclick="removeImage(${index})">✕</button>
-                `;
+                wrap.innerHTML = `<img src="data:${img.mimeType};base64,${img.data}"><button class="preview-remove" onclick="removeImage(${idx})">✕</button>`;
                 previewContainer.appendChild(wrap);
             });
         }
-
-        window.removeImage = function(index) {
-            selectedImages.splice(index, 1);
-            renderPreviews();
-        }
+        window.removeImage = (idx) => { selectedImages.splice(idx, 1); renderPreviews(); }
 
         async function handleSendMessage() {
             const text = userInput.value.trim();
             if (!text && selectedImages.length === 0) return;
 
-            let currentImagesSnapshot = [...selectedImages];
-            appendUserMessage(text, currentImagesSnapshot);
-            
-            userInput.value = '';
-            selectedImages = [];
-            previewContainer.innerHTML = '';
+            let imgs = [...selectedImages];
+            appendUserMessage(text, imgs);
+            userInput.value = ''; selectedImages = []; previewContainer.innerHTML = '';
             scrollToBottom();
 
-            let userContentParts = [];
-            if (text) userContentParts.push({ text: text });
-            currentImagesSnapshot.forEach(img => {
-                userContentParts.push({
-                    inlineData: { mimeType: img.mimeType, data: img.data }
-                });
-            });
-
-            window.messageHistory.push({ role: "user", content: userContentParts });
+            let parts = [];
+            if (text) parts.push({ text });
+            imgs.forEach(img => parts.push({ inlineData: { mimeType: img.mimeType, data: img.data } }));
+            window.messageHistory.push({ role: "user", content: parts });
             if (text) saveMessageToStorage('user', text);
 
-            if (!navigator.onLine) {
-                const offlineMsg = getRandomOfflineReply();
-                appendHtmlMessage(offlineMsg, 'ai');
-                window.messageHistory.push({ role: "model", content: offlineMsg });
-                saveMessageToStorage('model', offlineMsg);
-                scrollToBottom();
-                return;
-            }
-
-            const aiMsgId = appendMessage("", 'ai');
-            const aiMsgElem = document.getElementById(aiMsgId);
+            const loadingId = appendMessage("NOVA is cooking... 🍳", 'ai loading');
             scrollToBottom();
 
             try {
-                let token = null;
-                if (window.getCurrentAuthToken) token = await window.getCurrentAuthToken();
-
+                let token = window.getCurrentAuthToken ? await window.getCurrentAuthToken() : null;
                 const headers = { 'Content-Type': 'application/json' };
                 if (token) headers['Authorization'] = `Bearer ${token}`;
 
-                const currentRoastLevel = roastSlider.value || "2";
                 const now = new Date();
-                const currentDateStr = now.toLocaleDateString('en-GB', {
-                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-                });
+                const currentDateStr = now.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                const currentTimeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
-                const response = await fetch('/api/chat', {
+                const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: headers,
                     body: JSON.stringify({ 
                         messages: window.messageHistory,
-                        roastLevel: currentRoastLevel,
-                        currentDate: currentDateStr
+                        roastLevel: roastSlider.value || "2",
+                        currentDate: currentDateStr,
+                        currentTime: currentTimeStr
                     })
                 });
 
-                if (response.status === 403) {
-                    aiMsgElem.textContent = "⚠️ Firewall Blocked: Access restricted.";
-                    scrollToBottom();
-                    return;
-                }
+                document.getElementById(loadingId)?.remove();
+                const data = await res.json();
 
-                if (!response.ok) {
-                    aiMsgElem.textContent = "⚠️ Server connection failed.";
-                    scrollToBottom();
-                    return;
-                }
+                if (data.reply) {
+                    let finalReplyHtml = escapeHtml(data.reply);
 
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let fullReplyText = "";
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    const chunk = decoder.decode(value, { stream: true });
-                    
-                    const lines = chunk.split('\n');
-                    for (const line of lines) {
-                        if (line.startsWith('data:')) {
-                            const jsonStr = line.replace('data:', '').trim();
-                            if (jsonStr === '[DONE]') continue;
-                            try {
-                                const parsed = JSON.parse(jsonStr);
-                                const textChunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                                fullReplyText += textChunk;
-                                aiMsgElem.textContent = fullReplyText;
-                                scrollToBottom();
-                            } catch (e) {}
-                        }
+                    // Check if user asked for time/date to inject the sleek neon graphic widget
+                    const lowerText = text.toLowerCase();
+                    if (lowerText.includes('time') || lowerText.includes('date') || lowerText.includes('din') || lowerText.includes('aaj')) {
+                        finalReplyHtml += `
+                            <div class="neon-time-widget">
+                                <div class="widget-left">
+                                    <div class="widget-time-display">${currentTimeStr}</div>
+                                    <div class="widget-date-display">${currentDateStr}</div>
+                                    <div class="widget-timezone">Indian Standard Time (IST, UTC+5:30) 🇮🇳</div>
+                                </div>
+                                <div class="widget-clock-icon">⏰</div>
+                            </div>
+                        `;
                     }
-                }
 
-                if (fullReplyText) {
-                    window.messageHistory.push({ role: "model", content: fullReplyText });
-                    saveMessageToStorage('model', fullReplyText);
+                    appendHtmlMessage(finalReplyHtml, 'ai');
+                    window.messageHistory.push({ role: "model", content: data.reply });
+                    saveMessageToStorage('model', data.reply);
+                } else {
+                    appendMessage("⚠️ Kuch gadbad ho gayi!", 'ai');
                 }
-
-            } catch (error) {
-                console.error(error);
-                aiMsgElem.textContent = "⚠️ Connection error occurred.";
+                scrollToBottom();
+            } catch (err) {
+                document.getElementById(loadingId)?.remove();
+                appendMessage("⚠️ Server connection error!", 'ai');
                 scrollToBottom();
             }
         }
 
         function appendUserMessage(text, images) {
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'msg-bubble user';
-            let htmlContent = '';
-            if (images && images.length > 0) {
-                images.forEach(img => {
-                    htmlContent += `<img src="data:${img.mimeType};base64,${img.data}" class="msg-image">`;
-                });
-            }
-            if (text) htmlContent += `<div>${escapeHtml(text)}</div>`;
-            msgDiv.innerHTML = htmlContent;
-            chatStream.appendChild(msgDiv);
+            const div = document.createElement('div');
+            div.className = 'msg-bubble user';
+            let h = '';
+            images.forEach(img => h += `<img src="data:${img.mimeType};base64,${img.data}" class="msg-image">`);
+            if (text) h += `<div>${escapeHtml(text)}</div>`;
+            div.innerHTML = h;
+            chatStream.appendChild(div);
         }
 
-        function appendMessage(text, sender) {
-            const msgDiv = document.createElement('div');
-            const msgId = 'msg_' + Date.now() + Math.random().toString(36).substr(2, 4);
-            msgDiv.id = msgId;
-            msgDiv.className = `msg-bubble ${sender}`;
-            msgDiv.textContent = text;
-            chatStream.appendChild(msgDiv);
-            return msgId;
+        function appendMessage(txt, sender) {
+            const div = document.createElement('div');
+            const id = 'msg_' + Date.now();
+            div.id = id; div.className = `msg-bubble ${sender}`; div.textContent = txt;
+            chatStream.appendChild(div);
+            return id;
         }
 
         function appendHtmlMessage(html, sender) {
-            const msgDiv = document.createElement('div');
-            const msgId = 'msg_' + Date.now() + Math.random().toString(36).substr(2, 4);
-            msgDiv.id = msgId;
-            msgDiv.className = `msg-bubble ${sender}`;
-            msgDiv.innerHTML = html;
-            chatStream.appendChild(msgDiv);
-            return msgId;
+            const div = document.createElement('div');
+            div.className = `msg-bubble ${sender}`;
+            div.innerHTML = html;
+            chatStream.appendChild(div);
+            return div;
         }
 
-        function escapeHtml(string) {
-            return string.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
 
-        function scrollToBottom() {
-            chatStream.scrollTop = chatStream.scrollHeight;
-        }
+        function scrollToBottom() { chatStream.scrollTop = chatStream.scrollHeight; }
 
         sendBtn.addEventListener('click', handleSendMessage);
-        userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleSendMessage();
-        });
+        userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSendMessage(); });
     </script>
 </body>
 </html>
