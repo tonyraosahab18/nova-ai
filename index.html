@@ -400,39 +400,6 @@
             border: 1px solid rgba(199, 125, 255, 0.4);
         }
 
-        /* Embedded Vibe Player Widget */
-        .vibe-music-card {
-            background: rgba(20, 8, 35, 0.7);
-            border: 1px solid var(--neon-glow);
-            border-radius: 14px;
-            padding: 12px 14px;
-            margin-top: 8px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .vibe-music-icon {
-            font-size: 1.5rem;
-        }
-
-        .vibe-music-info {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .vibe-music-title {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #ffffff;
-        }
-
-        .vibe-music-sub {
-            font-size: 0.7rem;
-            color: var(--neon-glow);
-        }
-
         /* Preview container */
         .preview-container {
             padding: 6px 18px 0;
@@ -571,7 +538,6 @@
                 <button class="sidebar-close" id="sidebarClose">✕</button>
             </div>
             
-            <!-- Feature 1: Roast Level Slider -->
             <div class="sidebar-controls">
                 <span class="control-label">🔥 Savage Roast Level</span>
                 <div class="roast-slider-box">
@@ -729,7 +695,6 @@
         };
         let currentSessionId = 'session_' + Date.now();
 
-        // Welcome Prompts Pool (No repetitive self-intro/creator mentions)
         const welcomeMessagesPool = [
             "System online. NOVA active hai. Jyada bakchodi ki toh seedha roast khayega, baaki agar dhang ki baat karni hai toh bol, kya scene hai? ⚡",
             "System fully loaded! AI core online. Bataa aaj kya cook karna hai? 🚀",
@@ -738,14 +703,12 @@
             "NOVA AI online. Dimaag tez, tone savage! Kya chal raha hai, bata? 🎯"
         ];
 
-        // Offline Fallbacks
         const offlineRepliesPool = [
             "Oye! Tera net band hai lagta hai. Offline mode active hai—pehle data on kar, tab tak bata main tera mirror image banke kya soch raha hoon? 🔌😎",
             "Connection lost! Network ne tera sath chhod diya. Offline mode me bhi tera digital twin ready hai. Data on kar fir aag lagate hain! ⚡",
             "System offline detected! Data connect kar warna main apne mirror-mode se tere saare secrets decode kar doonga. 🕶️"
         ];
 
-        // Roast Slider Text
         const roastLabels = { "1": "Mild 🌿", "2": "Savage ⚡", "3": "Nuclear 💥" };
         roastSlider.addEventListener('input', (e) => {
             roastLevelTag.textContent = roastLabels[e.target.value] || "Savage ⚡";
@@ -976,6 +939,7 @@
                 saveMessageToStorage('user', text);
             }
 
+            // Sirf tabhi offline message trigger hoga jab browser sach me offline ho
             if (!navigator.onLine) {
                 const offlineMsg = getRandomOfflineReply();
                 appendHtmlMessage(offlineMsg, 'ai');
@@ -1036,8 +1000,8 @@
                 const loadingElem = document.getElementById(loadingId);
                 if (loadingElem) loadingElem.remove();
                 
-                const fallbackOfflineMsg = getRandomOfflineReply();
-                appendHtmlMessage(fallbackOfflineMsg, 'ai');
+                // Agar network on hai par fetch fail hua (jaise server/API error), toh proper server error dikhega
+                appendMessage("⚠️ Server ke sath connection fail ho gaya. API key ya Vercel deployment check kar!", 'ai');
                 scrollToBottom();
             }
         }
