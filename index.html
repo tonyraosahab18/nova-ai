@@ -498,7 +498,7 @@
                         <span class="brand-name">NOVA AI</span>
                         <div class="pulse-dot"></div>
                     </div>
-                    <span class="status-tag">Wake: "Wake up Nova" ⚡</span>
+                    <span class="status-tag">System online ⚡</span>
                 </div>
             </div>
             <div class="header-buttons">
@@ -512,7 +512,7 @@
         </div>
 
         <div class="chat-stream" id="chatStream">
-            <!-- Dynamic Time Greeting & User Name Appended Here on Load -->
+            <!-- Default Welcome Message Appended Here on Load -->
         </div>
 
         <!-- Image Previews Container -->
@@ -522,7 +522,6 @@
             <div class="input-pill-box">
                 <input type="file" id="imageInput" accept="image/*" multiple style="display: none;">
                 <button class="icon-btn" id="attachBtn" title="Upload Images">📎</button>
-                <button class="icon-btn" id="micBtn" title="Voice Input">🎙️</button>
                 <input type="text" id="userInput" class="text-input" placeholder="Type prompt or command..." autocomplete="off">
                 <button class="action-send-btn" id="sendBtn" title="Send">➔</button>
             </div>
@@ -610,27 +609,16 @@
         const attachBtn = document.getElementById('attachBtn');
         const imageInput = document.getElementById('imageInput');
         const previewContainer = document.getElementById('previewContainer');
-        const micBtn = document.getElementById('micBtn');
 
         window.messageHistory = [];
         let selectedImages = [];
         let deferredPrompt;
         let currentSessionId = localStorage.getItem('nova_active_session') || 'session_' + Date.now();
 
-        // Dynamic Time-Aware & User Personalized Greeting generator
-        function getDynamicGreetingText() {
-            const hour = new Date().getHours();
-            const userName = localStorage.getItem('nova_user_name') || "Navneet Yadav";
-
-            if (hour >= 4 && hour < 12) {
-                return `🌅 Good morning, ${userName}! Uth ja, system online hai aur aaj kuch bada phodna hai. 🔥`;
-            } else if (hour >= 12 && hour < 17) {
-                return `☀️ Good afternoon, ${userName}! Momentum high rakh, kya task execute karna hai?`;
-            } else if (hour >= 17 && hour < 21) {
-                return `🌆 Good evening, ${userName}! Shaam ka session shuru karein, bata kya scene hai?`;
-            } else {
-                return `🌙 Late night protocol active, ${userName}. Sannata hai, bata kya code ya project grind karna hai?`;
-            }
+        // Clean Professional Welcome Message generator
+        function getWelcomeMessageText() {
+            const userName = localStorage.getItem('nova_user_name') || "Boss";
+            return `System online. Hello, ${userName}! Batao, aaj kya code ya project execute karna hai? 🔥`;
         }
 
         function renderSidebarSessions() {
@@ -669,7 +657,7 @@
                     }
                 });
             } else {
-                const welcomeMsg = getDynamicGreetingText();
+                const welcomeMsg = getWelcomeMessageText();
                 appendHtmlMessage(welcomeMsg, 'ai');
             }
             chatStream.scrollTop = chatStream.scrollHeight;
@@ -721,7 +709,7 @@
             selectedImages = [];
             previewContainer.innerHTML = '';
             
-            const welcomeMsg = getDynamicGreetingText();
+            const welcomeMsg = getWelcomeMessageText();
             chatStream.innerHTML = `<div class="msg-bubble ai">${welcomeMsg}</div>`;
             
             sidebarDrawer.classList.remove('open');
@@ -784,45 +772,6 @@
         window.removeImage = function(index) {
             selectedImages.splice(index, 1);
             renderPreviews();
-        }
-
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'hi-IN';
-            recognition.continuous = false;
-            recognition.interimResults = false;
-
-            micBtn.addEventListener('click', () => {
-                recognition.start();
-                userInput.placeholder = "Listening (Try saying 'Wake up Nova')...";
-            });
-
-            recognition.onresult = (event) => {
-                let transcript = event.results[0][0].transcript;
-                
-                if (transcript.toLowerCase().includes('wake up nova')) {
-                    transcript = transcript.replace(/wake up nova/gi, '').trim();
-                    speakText("System online, bol boss!");
-                }
-
-                userInput.value = userInput.value ? userInput.value + ' ' + transcript : transcript;
-                userInput.placeholder = "Type prompt or command...";
-            };
-
-            recognition.onerror = () => { userInput.placeholder = "Type prompt or command..."; };
-            recognition.onend = () => { userInput.placeholder = "Type prompt or command..."; };
-        } else {
-            micBtn.style.display = 'none';
-        }
-
-        function speakText(text) {
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 1.0;
-                utterance.pitch = 1.1;
-                window.speechSynthesis.speak(utterance);
-            }
         }
 
         async function handleSendMessage() {
