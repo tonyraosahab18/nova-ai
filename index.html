@@ -49,7 +49,6 @@
             box-shadow: 0 0 40px rgba(157, 78, 221, 0.15);
         }
 
-        /* Fullscreen Mascot Background Wall */
         .mascot-wallpaper {
             position: absolute;
             inset: 0;
@@ -69,7 +68,6 @@
             pointer-events: none;
         }
 
-        /* Header - Extremely Sleek & Transparent */
         .top-bar {
             padding: 16px 20px 14px;
             display: flex;
@@ -122,7 +120,6 @@
             text-shadow: 0 0 12px rgba(199, 125, 255, 0.8);
         }
 
-        /* Network Status Dot */
         .pulse-dot {
             width: 7px;
             height: 7px;
@@ -183,7 +180,6 @@
             border: none;
         }
 
-        /* User Profile Pill */
         .user-pill {
             display: none;
             align-items: center;
@@ -211,7 +207,6 @@
             font-weight: 700;
         }
 
-        /* Sliding History Sidebar Drawer */
         .sidebar-drawer {
             position: absolute;
             top: 0;
@@ -348,7 +343,6 @@
             display: block;
         }
 
-        /* Chat Stream */
         .chat-stream {
             flex: 1;
             overflow-y: auto;
@@ -400,7 +394,6 @@
             border: 1px solid rgba(199, 125, 255, 0.4);
         }
 
-        /* Preview container */
         .preview-container {
             padding: 6px 18px 0;
             display: flex;
@@ -442,7 +435,6 @@
             justify-content: center;
         }
 
-        /* Bottom Input Control Bar */
         .bottom-section {
             padding: 12px 18px 20px;
             display: flex;
@@ -530,7 +522,6 @@
         <div class="mascot-wallpaper"></div>
         <div class="overlay-gradient"></div>
 
-        <!-- Sliding History Sidebar Drawer -->
         <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
         <div class="sidebar-drawer" id="sidebarDrawer">
             <div class="sidebar-header">
@@ -571,11 +562,8 @@
             </div>
         </div>
 
-        <div class="chat-stream" id="chatStream">
-            <!-- Swaggy Welcome Messages Appended Here -->
-        </div>
+        <div class="chat-stream" id="chatStream"></div>
 
-        <!-- Image Previews Container -->
         <div class="preview-container" id="previewContainer"></div>
 
         <div class="bottom-section">
@@ -591,7 +579,6 @@
         </div>
     </div>
 
-    <!-- Firebase Auth SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -655,9 +642,7 @@
         });
 
         window.getCurrentAuthToken = async () => {
-            if (auth.currentUser) {
-                return await auth.currentUser.getIdToken();
-            }
+            if (auth.currentUser) return await auth.currentUser.getIdToken();
             return currentUserToken;
         };
     </script>
@@ -935,11 +920,8 @@
             });
 
             window.messageHistory.push({ role: "user", content: userContentParts });
-            if (text) {
-                saveMessageToStorage('user', text);
-            }
+            if (text) saveMessageToStorage('user', text);
 
-            // Sirf tabhi offline message trigger hoga jab browser sach me offline ho
             if (!navigator.onLine) {
                 const offlineMsg = getRandomOfflineReply();
                 appendHtmlMessage(offlineMsg, 'ai');
@@ -949,59 +931,78 @@
                 return;
             }
 
-            const loadingId = appendMessage("NOVA is cooking...", 'ai loading');
+            const aiMsgId = appendMessage("", 'ai');
+            const aiMsgElem = document.getElementById(aiMsgId);
             scrollToBottom();
 
             try {
                 let token = null;
-                if (window.getCurrentAuthToken) {
-                    token = await window.getCurrentAuthToken();
-                }
+                if (window.getCurrentAuthToken) token = await window.getCurrentAuthToken();
 
                 const headers = { 'Content-Type': 'application/json' };
-                if (token) {
-                    headers['Authorization'] = `Bearer ${token}`;
-                }
+                if (token) headers['Authorization'] = `Bearer ${token}`;
 
                 const currentRoastLevel = roastSlider.value || "2";
+                const now = new Date();
+                const currentDateStr = now.toLocaleDateString('en-GB', {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                });
 
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: headers,
                     body: JSON.stringify({ 
                         messages: window.messageHistory,
-                        roastLevel: currentRoastLevel
+                        roastLevel: currentRoastLevel,
+                        currentDate: currentDateStr
                     })
                 });
 
-                const data = await response.json();
-                const loadingElem = document.getElementById(loadingId);
-                if (loadingElem) loadingElem.remove();
-
                 if (response.status === 403) {
-                    appendMessage("⚠️ Firewall Blocked: Access restricted.", 'ai');
+                    aiMsgElem.textContent = "⚠️ Firewall Blocked: Access restricted.";
                     scrollToBottom();
                     return;
                 }
 
-                if (data.reply) {
-                    appendHtmlMessage(data.reply, 'ai');
-                    window.messageHistory.push({ role: "model", content: data.reply });
-                    saveMessageToStorage('model', data.reply);
-                } else if (data.error) {
-                    appendMessage(`⚠️ Error: ${data.error}`, 'ai');
-                } else {
-                    appendMessage("Kuch gadbad ho gayi!", 'ai');
+                if (!response.ok) {
+                    aiMsgElem.textContent = "⚠️ Server connection failed.";
+                    scrollToBottom();
+                    return;
                 }
 
-                scrollToBottom();
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullReplyText = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value, { stream: true });
+                    
+                    const lines = chunk.split('\n');
+                    for (const line of lines) {
+                        if (line.startsWith('data:')) {
+                            const jsonStr = line.replace('data:', '').trim();
+                            if (jsonStr === '[DONE]') continue;
+                            try {
+                                const parsed = JSON.parse(jsonStr);
+                                const textChunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                                fullReplyText += textChunk;
+                                aiMsgElem.textContent = fullReplyText;
+                                scrollToBottom();
+                            } catch (e) {}
+                        }
+                    }
+                }
+
+                if (fullReplyText) {
+                    window.messageHistory.push({ role: "model", content: fullReplyText });
+                    saveMessageToStorage('model', fullReplyText);
+                }
 
             } catch (error) {
-                const loadingElem = document.getElementById(loadingId);
-                if (loadingElem) loadingElem.remove();
-                
-                // Agar network on hai par fetch fail hua (jaise server/API error), toh proper server error dikhega
-                appendMessage("⚠️ Server ke sath connection fail ho gaya. API key ya Vercel deployment check kar!", 'ai');
+                console.error(error);
+                aiMsgElem.textContent = "⚠️ Connection error occurred.";
                 scrollToBottom();
             }
         }
@@ -1009,16 +1010,13 @@
         function appendUserMessage(text, images) {
             const msgDiv = document.createElement('div');
             msgDiv.className = 'msg-bubble user';
-            
             let htmlContent = '';
             if (images && images.length > 0) {
                 images.forEach(img => {
                     htmlContent += `<img src="data:${img.mimeType};base64,${img.data}" class="msg-image">`;
                 });
             }
-            if (text) {
-                htmlContent += `<div>${escapeHtml(text)}</div>`;
-            }
+            if (text) htmlContent += `<div>${escapeHtml(text)}</div>`;
             msgDiv.innerHTML = htmlContent;
             chatStream.appendChild(msgDiv);
         }
