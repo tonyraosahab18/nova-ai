@@ -394,7 +394,7 @@
             border: 1px solid rgba(199, 125, 255, 0.4);
         }
 
-        /* Custom Neon Time/Date Graphic Widget Card */
+        /* Neon Time / Date Widget Card */
         .neon-time-widget {
             background: rgba(20, 8, 35, 0.85);
             border: 1px solid var(--neon-glow);
@@ -829,6 +829,21 @@
         window.loadCurrentSession();
         window.renderSidebarSessions();
 
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.style.display = 'block';
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') installBtn.style.display = 'none';
+                deferredPrompt = null;
+            }
+        });
+
         attachBtn.addEventListener('click', () => imageInput.click());
         imageInput.addEventListener('change', (e) => {
             Array.from(e.target.files).forEach(file => {
@@ -868,6 +883,15 @@
             window.messageHistory.push({ role: "user", content: parts });
             if (text) saveMessageToStorage('user', text);
 
+            if (!navigator.onLine) {
+                const offlineMsg = getRandomOfflineReply();
+                appendHtmlMessage(offlineMsg, 'ai');
+                window.messageHistory.push({ role: "model", content: offlineMsg });
+                saveMessageToStorage('model', offlineMsg);
+                scrollToBottom();
+                return;
+            }
+
             const loadingId = appendMessage("NOVA is cooking... 🍳", 'ai loading');
             scrollToBottom();
 
@@ -897,7 +921,7 @@
                 if (data.reply) {
                     let finalReplyHtml = escapeHtml(data.reply);
 
-                    // Check if user asked for time/date to inject the sleek neon graphic widget
+                    // Neon Widget for time/date queries
                     const lowerText = text.toLowerCase();
                     if (lowerText.includes('time') || lowerText.includes('date') || lowerText.includes('din') || lowerText.includes('aaj')) {
                         finalReplyHtml += `
@@ -915,6 +939,8 @@
                     appendHtmlMessage(finalReplyHtml, 'ai');
                     window.messageHistory.push({ role: "model", content: data.reply });
                     saveMessageToStorage('model', data.reply);
+                } else if (data.error) {
+                    appendMessage(`⚠️ Error: ${data.error}`, 'ai');
                 } else {
                     appendMessage("⚠️ Kuch gadbad ho gayi!", 'ai');
                 }
