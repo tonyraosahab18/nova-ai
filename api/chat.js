@@ -66,7 +66,7 @@ export default async function handler(req, res) {
   let reply = "";
 
   try {
-    // 1. Try Gemini Keys in Sequence
+    // 1. Try Gemini Keys in Sequence (Best for multimodal images & fast flash generation)
     for (const gKey of geminiKeys) {
       try {
         const response = await fetch(
@@ -91,7 +91,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // 2. Fallback to Groq API (OpenAI compatible format)
+    // 2. Fallback to Groq API (Hyper-speed Llama inference engine)
     if (!reply && groqKey) {
       try {
         const groqMessages = [
@@ -121,7 +121,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3. Fallback to OpenRouter API
+    // 3. Fallback to OpenRouter API (Universal multi-model gateway)
     if (!reply && openRouterKey) {
       try {
         const orMessages = [
@@ -152,11 +152,11 @@ export default async function handler(req, res) {
     }
 
     if (!reply) {
-      return res.status(502).json({ error: "All AI providers are currently busy. Try again in a moment! ⚡" });
+      return res.status(502).json({ error: "Sare AI providers abhi busy hain! 2 minute me try kar bhai ⚡" });
     }
 
   } catch (error) {
     console.error("NOVA failover error:", error);
-    return res.status(500).json({ error: "Backend failure in failover system." });
+    return res.status(500).json({ error: "Backend failover connection error." });
   }
 }
