@@ -15,16 +15,14 @@ export default async function handler(req, res) {
   const currentDate = body.currentDate || new Date().toLocaleDateString();
   const currentTime = body.currentTime || "";
 
+  const groqKey = process.env.GROQ_API_KEY;
+  const openRouterKey = process.env.OPENROUTER_API_KEY;
   const geminiKeys = [
     process.env.GEMINI_API_KEY_1,
     process.env.GEMINI_API_KEY_2,
     process.env.GEMINI_API_KEY_3,
     process.env.GEMINI_API_KEY
   ].filter(Boolean);
-
-  if (geminiKeys.length === 0) {
-    return res.status(500).json({ error: "No Gemini API keys found in Environment Variables." });
-  }
 
   const contents = messages
     .filter((message) => message && ["user", "assistant", "model"].includes(message.role))
@@ -59,48 +57,111 @@ export default async function handler(req, res) {
     "MANDATORY EMOJI RULE: Har sentence aur response me ekdum relevant, cool, aur swaggy emojis (jaise 🔥, 💀, ⚡, 🐱, 🚀, 😎) zaroor use karna! " +
     `REAL-TIME CONTEXT: Exact live date is ${currentDate} and time is ${currentTime}. ⏰ ` +
     "CRITICAL RULE: Baar-baar apne creator ka naam ya introduction dene ki bilkul zarurat nahi hai. Direct point par baat kar. " +
-    "MATHEMATICS & SYMBOLS FORMATTING RULE: NEVER output raw LaTeX syntax like fractions or complex backslash math commands. Always format equations, fractions, and symbols using clean, natural text, standard symbols (like /, *, +, -, ^), or simple Markdown. " +
+    "MATHEMATICS & SYMBOLS FORMATTING RULE: NEVER output raw LaTeX syntax like equations or fractions. Always format equations, fractions, and symbols using clean, natural text, standard symbols (like /, *, +, -, ^), or simple Markdown. " +
     `Roast Level Mode: Selected Roast Intensity = Level ${roastLevel} (${roastGuideline}). ` +
     "IMPORTANT: Bar-bar CHAOS.EXE ka link mat dena! Sirf tabhi CHAOS.EXE visit karne ko kehna jab user explicitly bole ki wo bohot stress me hai ya bore ho raha hai. " +
     "Swag aur tone hamesha top-notch honi chahiye aur response hamesha Hindi (Latin) yani Hinglish me hona chahiye.";
 
-  // Random key rotation for lightning fast load distribution
-  const selectedKey = geminiKeys[Math.floor(Math.random() * geminiKeys.length)];
+  let reply = "";
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${selectedKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemInstructionText }] },
-          contents,
-          generationConfig: { temperature: 0.85, maxOutputTokens: 1024 }
-        })
+    // 1. Primary Engine: Groq API (Hyper-speed Llama model)
+    if (groqKey) {
+      try {
+        const groqMessages = [
+          { role: "system", content: systemInstructionText },
+          ...contents.map(c => ({
+            role: c.role === "model" ? "assistant" : "user",
+            content: c.parts.map(p => p.text || "").join(" ")
+          }))
+        ];
+        const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${groqKey}`
+          },
+          body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: groqMessages,
+            temperature: 0.85,
+            max_tokens: 1024
+          })
+        });
+        const groqData = await groqRes.json();
+        if (groqRes.ok) {
+          reply = groqData.choices?.[0]?.message?.content?.trim() || "";
+          if (reply) return res.status(200).json({ reply });
+        }
+      } catch (e) {
+        console.warn("Groq fallback triggered:", e.message);
       }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Gemini API Error:", data);
-      return res.status(502).json({ error: data?.error?.message || "AI core temporary glitch! ⚡" });
     }
 
-    const reply = (data.candidates?.[0]?.content?.parts || [])
-      .map((part) => part.text || "")
-      .join("")
-      .trim();
+    // 2. Fallback 1: OpenRouter API
+    if (!reply && openRouterKey) {
+      try {
+        const orMessages = [
+          { role: "system", content: systemInstructionText },
+          ...contents.map(c => ({
+            role: c.role === "model" ? "assistant" : "user",
+            content: c.parts.map(p => p.text || "").join(" ")
+          }))
+        ];
+        const orRes = await fetch("https://api.openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${openRouterKey}`,
+            "HTTP-Referer": "https://nova-ai.vercel.app",
+            "X-Title": "NOVA AI"
+          },
+          body: JSON.stringify({
+            model: "google/gemini-flash-1.5",
+            messages: orMessages,
+            temperature: 0.85,
+            max_tokens: 1024
+          })
+        });
+        const orData = await orRes.json();
+        if (orRes.ok) {
+          reply = orData.choices?.[0]?.message?.content?.trim() || "";
+          if (reply) return res.status(200).json({ reply });
+        }
+      } catch (e) {}
+    }
+
+    // 3. Fallback 2: Gemini Keys Backup
+    if (!reply && geminiKeys.length > 0) {
+      for (const gKey of geminiKeys) {
+        try {
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${gKey}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                systemInstruction: { parts: [{ text: systemInstructionText }] },
+                contents,
+                generationConfig: { temperature: 0.85, maxOutputTokens: 1024 }
+              })
+            }
+          );
+          const data = await response.json();
+          if (response.ok) {
+            reply = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim();
+            if (reply) return res.status(200).json({ reply });
+          }
+        } catch (e) {}
+      }
+    }
 
     if (!reply) {
-      return res.status(502).json({ error: "Empty response from AI core." });
+      return res.status(502).json({ error: "Sare AI providers busy hain! Ek second me firse try kar bhai ⚡" });
     }
 
-    return res.status(200).json({ reply });
-
   } catch (error) {
-    console.error("NOVA backend error:", error);
-    return res.status(500).json({ error: "Server connection error." });
+    console.error("NOVA error:", error);
+    return res.status(500).json({ error: "Server error ho gaya hai." });
   }
 }
