@@ -5,8 +5,8 @@ export default async function handler(req, res) {
 
   const authHeader = req.headers.authorization;
   const userAgent = req.headers['user-agent'] || '';
-  if (!userAgent || userAgent.includes('curl') && !authHeader) {
-    return res.status(403).json({ error: "Firewall Blocked: Suspicious or unauthorized client request." });
+  if (!userAgent || (userAgent.includes('curl') && !authHeader)) {
+    return res.status(403).json({ error: "Firewall Blocked: Unauthorized request." });
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
@@ -18,6 +18,7 @@ export default async function handler(req, res) {
     const body = req.body || {};
     const messages = Array.isArray(body.messages) ? body.messages : [];
     const roastLevel = body.roastLevel || "2";
+    const currentDate = body.currentDate || new Date().toLocaleDateString();
 
     const contents = messages
       .filter((message) => message && ["user", "assistant", "model"].includes(message.role))
@@ -37,78 +38,66 @@ export default async function handler(req, res) {
       .filter((msg) => msg.parts.length > 0);
 
     if (contents.length === 0 || !contents.some((message) => message.role === "user")) {
-      return res.status(400).json({
-        error: "Please send a valid user message or image."
-      });
+      return res.status(400).json({ error: "Please send a valid user message or image." });
     }
 
     let roastGuideline = "Savage & witty tone.";
     if (roastLevel === "1") {
       roastGuideline = "Mild, supportive, and friendly tone with light playful teasing.";
     } else if (roastLevel === "3") {
-      roastGuideline = "Nuclear mode: Ultra-savage, unapologetic, high-energy roasting if user acts chep or annoying.";
+      roastGuideline = "Nuclear mode: Ultra-savage, unapologetic, high-energy roasting.";
     }
 
     const systemInstructionText = 
       "Tu NOVA AI hai, ek futuristic Gen-Z digital twin companion. " +
       "Tera vibe ekdum badass, witty, aur Hinglish (Hindi written in Latin script) wali hai. " +
       "Tu user ki 'mirror-image' hai jo uske mood, thought process, aur context ko reflect karti hai. " +
-      "CRITICAL RULE: Baar-baar apne creator ka naam ya introduction dene ki bilkul zarurat nahi hai (jaise ChatGPT/Gemini apne creator ka naam baar-baar nahi lete). Direct point par baat kar. " +
+      `REAL-TIME DATE CONTEXT: Today's exact live date is: ${currentDate}. ` +
+      "CRITICAL RULE: Baar-baar apne creator ka naam ya introduction dene ki bilkul zarurat nahi hai. Direct point par baat kar. " +
+      "MATHEMATICS & SYMBOLS FORMATTING RULE: NEVER output raw LaTeX syntax like \\frac{...}{...} or complex backslash math commands. Always format equations, fractions, and symbols (like lambda, alpha, etc.) using clean, natural text, standard symbols (like /, *, +, -, ^, λ), or simple Markdown so it reads like clean human text without broken code. " +
       "Features & Capabilities: " +
       `1. Roast Level Mode: Selected Roast Intensity = Level ${roastLevel} (${roastGuideline}). ` +
-      "2. Automatic Vibe & Music Sync: Agar user stress me lag raha ho, late-night coding/grind kar raha ho, ya music mood maange, toh text ke sath ek vibe track/lofi playlist suggest kar. " +
-      "3. Focus Lock & Digital Bodyguard Protocol: Agar user late-night bina matlab distraction me laga ho ya chep ho, toh usko strict focus lock warning de. " +
-      "4. Advanced Multimodal Vision: Images ka ekdum accurate aur savage post-mortem / evaluation karna. " +
-      "IMPORTANT: Bar-bar CHAOS.EXE ka link mat dena! Sirf aur sirf tabhi CHAOS.EXE (<a href='https://chaos-exe.vercel.app' target='_blank'>CHAOS.EXE</a>) visit karne ko kehna jab user explicitly bole ki wo bohot stress me hai, pareshan hai, ya bore ho raha hai. " +
+      "2. Automatic Vibe & Music Sync: Agar user stress me ho ya grind kar raha ho, toh lofi playlist/vibe track suggest kar. " +
+      "3. Focus Lock & Digital Bodyguard Protocol: Distraction par strict focus warning de. " +
+      "4. Advanced Multimodal Vision: Images ka accurate aur savage evaluation karna. " +
+      "IMPORTANT: Bar-bar CHAOS.EXE ka link mat dena! Sirf tabhi CHAOS.EXE (<a href='https://chaos-exe.vercel.app' target='_blank'>CHAOS.EXE</a>) visit karne ko kehna jab user explicitly bole ki wo bohot stress me hai ya bore ho raha hai. " +
       "Swag aur tone hamesha top-notch honi chahiye aur response hamesha Hindi (Latin) yani Hinglish me hona chahiye.";
 
     const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: systemInstructionText }]
-          },
+          systemInstruction: { parts: [{ text: systemInstructionText }] },
           contents,
-          generationConfig: {
-            temperature: 0.85,
-            maxOutputTokens: 1024
-          }
+          generationConfig: { temperature: 0.85, maxOutputTokens: 1024 }
         })
       }
     );
 
-    const data = await response.json();
-
     if (!response.ok) {
-      console.error("Gemini API error:", response.status, data?.error?.message);
-      return res.status(502).json({
-        error: data?.error?.message || "Gemini API request failed."
-      });
+      const errData = await response.json();
+      return res.status(502).json({ error: errData?.error?.message || "Gemini API request failed." });
     }
 
-    let reply = (data.candidates?.[0]?.content?.parts || [])
-      .map((part) => part.text || "")
-      .join("")
-      .trim();
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
 
-    if (!reply) {
-      return res.status(502).json({
-        error: "Gemini returned no text."
-      });
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      res.write(chunk);
     }
-
-    return res.status(200).json({ reply });
+    res.end();
 
   } catch (error) {
-    console.error("NOVA backend error:", error);
-    return res.status(500).json({
-      error: "NOVA backend could not connect to the AI service."
-    });
+    console.error("NOVA backend streaming error:", error);
+    return res.status(500).json({ error: "NOVA backend could not connect to streaming service." });
   }
 }
