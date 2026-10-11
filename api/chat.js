@@ -18,11 +18,12 @@ export default async function handler(req, res) {
   const currentDate = body.currentDate || new Date().toLocaleDateString();
   const currentTime = body.currentTime || "";
 
-  const groqKey = process.env.GROQ_API_KEY;
+  // Vercel me exact variable name GEMINI_API_KEY_3 set karna hai
+  const geminiKey = process.env.GEMINI_API_KEY_3 || process.env.GEMINI_API_KEY_1 || process.env.GEMINI_API_KEY_2;
 
-  if (!groqKey) {
+  if (!geminiKey) {
     return res.status(500).json({
-      error: "Groq API key missing in Vercel environment variables!"
+      error: "GEMINI_API_KEY_3 missing in Vercel environment variables!"
     });
   }
 
@@ -34,7 +35,6 @@ export default async function handler(req, res) {
     )
     .map((message) => {
       let parts = [];
-
       if (Array.isArray(message.content)) {
         parts = message.content;
       } else if (
@@ -45,14 +45,11 @@ export default async function handler(req, res) {
       }
 
       return {
-        role:
-          message.role === "assistant" || message.role === "model"
-            ? "assistant"
-            : "user",
-        text: parts.map((p) => p.text || "").join(" ")
+        role: message.role === "assistant" || message.role === "model" ? "model" : "user",
+        parts: parts
       };
     })
-    .filter((msg) => msg.text.length > 0);
+    .filter((msg) => msg.parts.length > 0);
 
   if (contents.length === 0) {
     return res.status(400).json({
@@ -71,6 +68,7 @@ export default async function handler(req, res) {
     "Tu NOVA AI hai, ek futuristic Gen-Z digital twin companion aur ultimate roast master. " +
     "Tera vibe ekdum badass, witty, aur Hinglish (Hindi written in Latin script) wali hai. 🚀🔥 " +
     "MANDATORY EMOJI RULE: Har sentence aur response me ekdum relevant, cool, aur swaggy emojis (jaise 🔥, 💀, ⚡, 🐱, 🚀, 😎) zaroor use karna! " +
+    "CRITICAL ABUSE/ROAST RULE: Jab bhi user gaali de ya insult kare, toh kabhi bhi 'Sorry, I cannot respond' ya corporate apology mat dena! Usse 10x zyada savage aur witty tarike se palat kar roast karna hai, bina kisi darr ke. 😈 " +
     `REAL-TIME CONTEXT: Exact live date is ${currentDate} and time is ${currentTime}. ⏰ ` +
     "CRITICAL RULE: Baar-baar apne creator ka naam ya introduction dene ki bilkul zarurat nahi hai. Direct point par baat kar. " +
     "MATHEMATICS & SYMBOLS FORMATTING RULE: NEVER output raw LaTeX syntax like equations or fractions. Always format equations, fractions, and symbols using clean, natural text, standard symbols (like /, *, +, -, ^), or simple Markdown. " +
@@ -79,49 +77,45 @@ export default async function handler(req, res) {
     "Swag aur tone hamesha top-notch honi chahiye aur response hamesha Hindi (Latin) yani Hinglish me hona chahiye.";
 
   try {
-    const groqMessages = [
-      { role: "system", content: systemInstructionText },
-      ...contents.map((c) => ({
-        role: c.role,
-        content: c.text
-      }))
-    ];
-
-    const groqRes = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiKey}`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${groqKey}`
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "openai/gpt-oss-20b",
-          messages: groqMessages,
-          max_completion_tokens: 1024,
-          include_reasoning: false
+          systemInstruction: { parts: [{ text: systemInstructionText }] },
+          contents,
+          generationConfig: { 
+            temperature: 0.9, 
+            maxOutputTokens: 1024 
+          },
+          safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+          ]
         })
       }
     );
 
-    const groqData = await groqRes.json();
+    const data = await response.json();
 
-    if (!groqRes.ok) {
-      console.error("Groq API Error:", groqData);
-
+    if (!response.ok) {
+      console.error("Gemini API Error:", data);
       return res.status(502).json({
-        error:
-          groqData?.error?.message ||
-          "Groq core temporary issue! ⚡"
+        error: data?.error?.message || "Gemini core temporary issue! ⚡"
       });
     }
 
-    const reply =
-      groqData.choices?.[0]?.message?.content?.trim() || "";
+    const reply = (data.candidates?.[0]?.content?.parts || [])
+      .map((part) => part.text || "")
+      .join("")
+      .trim();
 
     if (!reply) {
       return res.status(502).json({
-        error: "Empty response from Groq engine."
+        error: "Empty response from Gemini engine."
       });
     }
 
@@ -129,7 +123,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error("NOVA backend error:", error);
-
     return res.status(500).json({
       error: "Server connection error."
     });
