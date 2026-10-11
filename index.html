@@ -13,7 +13,7 @@
             --neon-purple: #9d4edd;
             --neon-glow: #c77dff;
             --neon-cyan: #00ffcc;
-            --glass-card: rgba(10, 3, 20, 0.25); /* Exact match to ultra-transparent image style */
+            --glass-card: rgba(10, 3, 20, 0.25);
             --glass-border: rgba(199, 125, 255, 0.2);
             --text-main: #ffffff;
         }
@@ -122,6 +122,7 @@
             text-shadow: 0 0 12px rgba(199, 125, 255, 0.8);
         }
 
+        /* Network Status Dot (Green for Online, Red for Offline) */
         .pulse-dot {
             width: 7px;
             height: 7px;
@@ -131,10 +132,22 @@
             animation: pulse 2s infinite;
         }
 
+        .pulse-dot.offline {
+            background-color: #ff3366 !important;
+            box-shadow: 0 0 10px #ff3366 !important;
+            animation: pulse-red 1.2s infinite;
+        }
+
         @keyframes pulse {
             0% { transform: scale(0.95); opacity: 0.8; }
             50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 12px var(--neon-cyan); }
             100% { transform: scale(0.95); opacity: 0.8; }
+        }
+
+        @keyframes pulse-red {
+            0% { transform: scale(0.95); opacity: 0.7; }
+            50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 14px #ff3366; }
+            100% { transform: scale(0.95); opacity: 0.7; }
         }
 
         .status-tag {
@@ -299,7 +312,7 @@
             display: block;
         }
 
-        /* Chat Stream - Fully Ultra-Transparent Glass Boxes */
+        /* Chat Stream */
         .chat-stream {
             flex: 1;
             overflow-y: auto;
@@ -328,7 +341,7 @@
         }
 
         .msg-bubble.ai {
-            background: var(--glass-card); /* Ultra-transparent glass like screenshot */
+            background: var(--glass-card);
             border: 1.5px solid rgba(199, 125, 255, 0.22);
             color: #ffffff;
             align-self: flex-start;
@@ -404,7 +417,7 @@
         }
 
         .input-pill-box {
-            background: rgba(15, 5, 25, 0.15); /* Ultra-transparent glass pill */
+            background: rgba(15, 5, 25, 0.15);
             border: 1.5px solid rgba(199, 125, 255, 0.3);
             border-radius: 32px;
             padding: 6px 8px 6px 14px;
@@ -498,9 +511,9 @@
                 <div class="brand-col">
                     <div class="brand-row">
                         <span class="brand-name">NOVA AI</span>
-                        <div class="pulse-dot"></div>
+                        <div class="pulse-dot" id="statusDot"></div>
                     </div>
-                    <span class="status-tag">System online ⚡</span>
+                    <span class="status-tag" id="statusText">System online ⚡</span>
                 </div>
             </div>
             <div class="header-buttons">
@@ -618,6 +631,8 @@
         const attachBtn = document.getElementById('attachBtn');
         const imageInput = document.getElementById('imageInput');
         const previewContainer = document.getElementById('previewContainer');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
 
         window.messageHistory = [];
         let selectedImages = [];
@@ -633,7 +648,7 @@
         };
         let currentSessionId = 'session_' + Date.now();
 
-        // Welcome Prompts Pool (Includes exact prompt from screenshot)
+        // Welcome Prompts Pool
         const welcomeMessagesPool = [
             "System online. RaoSahab ki NOVA active hai. Jyada bakchodi ki toh seedha roast khayega, baaki agar dhang ki baat karni hai toh bol, kya scene hai? ⚡",
             "System fully loaded! RaoSahab ka AI core online hai. Bataa aaj kya cook karna hai? 🚀",
@@ -642,10 +657,38 @@
             "NOVA AI online. Dimaag tez, tone savage! Kya chal raha hai, bata? 🎯"
         ];
 
+        // Built-in Offline Fallback Replies Pool
+        const offlineRepliesPool = [
+            "Oye! Tera net band hai lagta hai. Par RaoSahab ki NOVA offline bhi chup nahi baithti—pehle data on kar, tab tak bata main tera mirror image banke kya souch raha hoon? 🔌😎",
+            "Connection lost! Lagta hai network ne tera sath chhod diya. Par tu tension mat le, offline mode me bhi main tere sath hoon. Data on kar fir aag lagate hain! ⚡",
+            "Net off karke chupchap baithne se thodi kuch hoga! Data connect kar warna main apne mirror-mode se tere saare secrets decode kar doongı. 🕶️",
+            "System offline detected! Par tera digital bodyguard yahi hai. Internet chalu kar aur bata kya task hai! 🚀"
+        ];
+
         function getRandomWelcomeMessage() {
             const randomIndex = Math.floor(Math.random() * welcomeMessagesPool.length);
             return welcomeMessagesPool[randomIndex];
         }
+
+        function getRandomOfflineReply() {
+            const randomIndex = Math.floor(Math.random() * offlineRepliesPool.length);
+            return offlineRepliesPool[randomIndex];
+        }
+
+        function updateNetworkStatus() {
+            if (navigator.onLine) {
+                statusDot.classList.remove('offline');
+                statusText.textContent = "System online ⚡";
+            } else {
+                statusDot.classList.add('offline');
+                statusText.textContent = "System offline 🔌";
+            }
+        }
+
+        window.addEventListener('online', updateNetworkStatus);
+        window.addEventListener('offline', updateNetworkStatus);
+        setInterval(updateNetworkStatus, 3000);
+        updateNetworkStatus();
 
         window.renderSidebarSessions = function() {
             const storageKey = getStorageKey();
@@ -849,6 +892,15 @@
                 saveMessageToStorage('user', text);
             }
 
+            if (!navigator.onLine) {
+                const offlineMsg = getRandomOfflineReply();
+                appendHtmlMessage(offlineMsg, 'ai');
+                window.messageHistory.push({ role: "model", content: offlineMsg });
+                saveMessageToStorage('model', offlineMsg);
+                scrollToBottom();
+                return;
+            }
+
             const loadingId = appendMessage("NOVA is cooking...", 'ai loading');
             scrollToBottom();
 
@@ -894,7 +946,9 @@
             } catch (error) {
                 const loadingElem = document.getElementById(loadingId);
                 if (loadingElem) loadingElem.remove();
-                appendMessage("Server ke sath connection toot gaya!", 'ai');
+                
+                const fallbackOfflineMsg = getRandomOfflineReply();
+                appendHtmlMessage(fallbackOfflineMsg, 'ai');
                 scrollToBottom();
             }
         }
