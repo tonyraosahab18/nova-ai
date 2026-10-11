@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NOVA AI | Powered by RaoSahab</title>
+    <title>NOVA AI</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -122,7 +122,7 @@
             text-shadow: 0 0 12px rgba(199, 125, 255, 0.8);
         }
 
-        /* Network Status Dot (Green for Online, Red for Offline) */
+        /* Network Status Dot */
         .pulse-dot {
             width: 7px;
             height: 7px;
@@ -256,8 +256,44 @@
             cursor: pointer;
         }
 
+        .sidebar-controls {
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            border-bottom: 1px solid rgba(199, 125, 255, 0.1);
+        }
+
+        .control-label {
+            font-size: 0.75rem;
+            color: var(--neon-glow);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .roast-slider-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .roast-slider-box input[type="range"] {
+            flex: 1;
+            accent-color: var(--neon-purple);
+            cursor: pointer;
+        }
+
+        .roast-level-tag {
+            font-size: 0.75rem;
+            color: #ffffff;
+            font-weight: 700;
+            min-width: 65px;
+            text-align: right;
+        }
+
         .sidebar-new-chat-btn {
-            margin: 16px 20px;
+            margin: 12px 20px;
             background: linear-gradient(135deg, #7b2cbf, #9d4edd);
             color: white;
             border: none;
@@ -362,6 +398,39 @@
             margin-bottom: 10px;
             display: block;
             border: 1px solid rgba(199, 125, 255, 0.4);
+        }
+
+        /* Embedded Vibe Player Widget */
+        .vibe-music-card {
+            background: rgba(20, 8, 35, 0.7);
+            border: 1px solid var(--neon-glow);
+            border-radius: 14px;
+            padding: 12px 14px;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .vibe-music-icon {
+            font-size: 1.5rem;
+        }
+
+        .vibe-music-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .vibe-music-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .vibe-music-sub {
+            font-size: 0.7rem;
+            color: var(--neon-glow);
         }
 
         /* Preview container */
@@ -498,16 +567,26 @@
         <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
         <div class="sidebar-drawer" id="sidebarDrawer">
             <div class="sidebar-header">
-                <span class="sidebar-title">✦ Chat History</span>
+                <span class="sidebar-title">✦ Settings & History</span>
                 <button class="sidebar-close" id="sidebarClose">✕</button>
             </div>
+            
+            <!-- Feature 1: Roast Level Slider -->
+            <div class="sidebar-controls">
+                <span class="control-label">🔥 Savage Roast Level</span>
+                <div class="roast-slider-box">
+                    <input type="range" id="roastSlider" min="1" max="3" value="2">
+                    <span class="roast-level-tag" id="roastLevelTag">Savage ⚡</span>
+                </div>
+            </div>
+
             <button class="sidebar-new-chat-btn" id="sidebarNewChat">+ New Chat Session</button>
             <div class="sidebar-history-list" id="sidebarHistoryList"></div>
         </div>
 
         <div class="top-bar">
             <div class="header-left">
-                <button class="menu-toggle-btn" id="menuToggleBtn" title="Chat History">☰</button>
+                <button class="menu-toggle-btn" id="menuToggleBtn" title="Chat Settings & History">☰</button>
                 <div class="brand-col">
                     <div class="brand-row">
                         <span class="brand-name">NOVA AI</span>
@@ -527,7 +606,7 @@
         </div>
 
         <div class="chat-stream" id="chatStream">
-            <!-- Swaggy Random Gen-Z Welcome Greetings Appended Here -->
+            <!-- Swaggy Welcome Messages Appended Here -->
         </div>
 
         <!-- Image Previews Container -->
@@ -546,7 +625,7 @@
         </div>
     </div>
 
-    <!-- Firebase Auth SDK & Auth-Bound History Management -->
+    <!-- Firebase Auth SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -633,6 +712,8 @@
         const previewContainer = document.getElementById('previewContainer');
         const statusDot = document.getElementById('statusDot');
         const statusText = document.getElementById('statusText');
+        const roastSlider = document.getElementById('roastSlider');
+        const roastLevelTag = document.getElementById('roastLevelTag');
 
         window.messageHistory = [];
         let selectedImages = [];
@@ -648,31 +729,34 @@
         };
         let currentSessionId = 'session_' + Date.now();
 
-        // Welcome Prompts Pool
+        // Welcome Prompts Pool (No repetitive self-intro/creator mentions)
         const welcomeMessagesPool = [
-            "System online. RaoSahab ki NOVA active hai. Jyada bakchodi ki toh seedha roast khayega, baaki agar dhang ki baat karni hai toh bol, kya scene hai? ⚡",
-            "System fully loaded! RaoSahab ka AI core online hai. Bataa aaj kya cook karna hai? 🚀",
+            "System online. NOVA active hai. Jyada bakchodi ki toh seedha roast khayega, baaki agar dhang ki baat karni hai toh bol, kya scene hai? ⚡",
+            "System fully loaded! AI core online. Bataa aaj kya cook karna hai? 🚀",
             "NOVA operational. Focus high hai, excuses zero. Bata boss, kya task niptana hai? 🔥",
             "System connected. Standby mode off. Koi script, bug ya idea hai toh drop kar, abhi decode karte hain! ⚡",
             "NOVA AI online. Dimaag tez, tone savage! Kya chal raha hai, bata? 🎯"
         ];
 
-        // Built-in Offline Fallback Replies Pool
+        // Offline Fallbacks
         const offlineRepliesPool = [
-            "Oye! Tera net band hai lagta hai. Par RaoSahab ki NOVA offline bhi chup nahi baithti—pehle data on kar, tab tak bata main tera mirror image banke kya souch raha hoon? 🔌😎",
-            "Connection lost! Lagta hai network ne tera sath chhod diya. Par tu tension mat le, offline mode me bhi main tere sath hoon. Data on kar fir aag lagate hain! ⚡",
-            "Net off karke chupchap baithne se thodi kuch hoga! Data connect kar warna main apne mirror-mode se tere saare secrets decode kar doongı. 🕶️",
-            "System offline detected! Par tera digital bodyguard yahi hai. Internet chalu kar aur bata kya task hai! 🚀"
+            "Oye! Tera net band hai lagta hai. Offline mode active hai—pehle data on kar, tab tak bata main tera mirror image banke kya soch raha hoon? 🔌😎",
+            "Connection lost! Network ne tera sath chhod diya. Offline mode me bhi tera digital twin ready hai. Data on kar fir aag lagate hain! ⚡",
+            "System offline detected! Data connect kar warna main apne mirror-mode se tere saare secrets decode kar doonga. 🕶️"
         ];
 
+        // Roast Slider Text
+        const roastLabels = { "1": "Mild 🌿", "2": "Savage ⚡", "3": "Nuclear 💥" };
+        roastSlider.addEventListener('input', (e) => {
+            roastLevelTag.textContent = roastLabels[e.target.value] || "Savage ⚡";
+        });
+
         function getRandomWelcomeMessage() {
-            const randomIndex = Math.floor(Math.random() * welcomeMessagesPool.length);
-            return welcomeMessagesPool[randomIndex];
+            return welcomeMessagesPool[Math.floor(Math.random() * welcomeMessagesPool.length)];
         }
 
         function getRandomOfflineReply() {
-            const randomIndex = Math.floor(Math.random() * offlineRepliesPool.length);
-            return offlineRepliesPool[randomIndex];
+            return offlineRepliesPool[Math.floor(Math.random() * offlineRepliesPool.length)];
         }
 
         function updateNetworkStatus() {
@@ -915,10 +999,15 @@
                     headers['Authorization'] = `Bearer ${token}`;
                 }
 
+                const currentRoastLevel = roastSlider.value || "2";
+
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: headers,
-                    body: JSON.stringify({ messages: window.messageHistory })
+                    body: JSON.stringify({ 
+                        messages: window.messageHistory,
+                        roastLevel: currentRoastLevel
+                    })
                 });
 
                 const data = await response.json();
@@ -938,7 +1027,7 @@
                 } else if (data.error) {
                     appendMessage(`⚠️ Error: ${data.error}`, 'ai');
                 } else {
-                    appendMessage("Kuch gadbad ho gayi bhai!", 'ai');
+                    appendMessage("Kuch gadbad ho gayi!", 'ai');
                 }
 
                 scrollToBottom();
