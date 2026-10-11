@@ -15,6 +15,7 @@ export default async function handler(req, res) {
   const currentDate = body.currentDate || new Date().toLocaleDateString();
   const currentTime = body.currentTime || "";
 
+  // Sanitize input contents
   const contents = messages
     .filter((message) => message && ["user", "assistant", "model"].includes(message.role))
     .map((message) => {
@@ -53,6 +54,7 @@ export default async function handler(req, res) {
     "IMPORTANT: Bar-bar CHAOS.EXE ka link mat dena! Sirf tabhi CHAOS.EXE (<a href='https://chaos-exe.vercel.app' target='_blank'>CHAOS.EXE</a>) visit karne ko kehna jab user explicitly bole ki wo bohot stress me hai ya bore ho raha hai. " +
     "Swag aur tone hamesha top-notch honi chahiye aur response hamesha Hindi (Latin) yani Hinglish me hona chahiye.";
 
+  // Exact Environment Variable Mapping from your Vercel Dashboard
   const geminiKeys = [
     process.env.GEMINI_API_KEY_1,
     process.env.GEMINI_API_KEY_2,
@@ -60,40 +62,128 @@ export default async function handler(req, res) {
     process.env.GEMINI_API_KEY
   ].filter(Boolean);
 
-  let reply = "";
+  const groqKey = process.env.GROQ_API_KEY;
+  const openRouterKey = process.env.OPENROUTER_API_KEY;
 
+  // 1. Helper function for Gemini Call
+  async function callGemini(key) {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${key}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemInstructionText }] },
+          contents,
+          generationConfig: { temperature: 0.85, maxOutputTokens: 1024 }
+        })
+      }
+    );
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.error?.message || "Gemini Error");
+    const replyText = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim();
+    if (!replyText) throw new Error("Empty Gemini Response");
+    return replyText;
+  }
+
+  // 2. Helper function for Groq Call
+  async function callGroq() {
+    if (!groqKey) throw new Error("Groq key missing");
+    const groqMessages = [
+      { role: "system", content: systemInstructionText },
+      ...contents.map(c => ({
+        role: c.role === "model" ? "assistant" : "user",
+        content: c.parts.map(p => p.text || "").join(" ")
+      }))
+    ];
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${groqKey}`
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: groqMessages,
+        temperature: 0.85,
+        max_tokens: 1024
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error?.message || "Groq Error");
+    const replyText = data.choices?.[0]?.message?.content?.trim();
+    if (!replyText) throw new Error("Empty Groq Response");
+    return replyText;
+  }
+
+  // 3. Helper function for OpenRouter Call
+  async function callOpenRouter() {
+    if (!openRouterKey) throw new Error("OpenRouter key missing");
+    const orMessages = [
+      { role: "system", content: systemInstructionText },
+      ...contents.map(c => ({
+        role: c.role === "model" ? "assistant" : "user",
+        content: c.parts.map(p => p.text || "").join(" ")
+      }))
+    ];
+    const res = await fetch("https://api.openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${openRouterKey}`,
+        "HTTP-Referer": "https://nova-ai.vercel.app",
+        "X-Title": "NOVA AI"
+      },
+      body: JSON.stringify({
+        model: "google/gemini-flash-1.5",
+        messages: orMessages,
+        temperature: 0.85,
+        max_tokens: 1024
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error?.message || "OpenRouter Error");
+    const replyText = data.choices?.[0]?.message?.content?.trim();
+    if (!replyText) throw new Error("Empty OpenRouter Response");
+    return replyText;
+  }
+
+  // Sequential execution with robust fallback
   try {
-    // Try all available Gemini keys first for maximum stability & multimodal support
-    for (const gKey of geminiKeys) {
+    // Attempt Groq first for sub-1-second lightning speed
+    if (groqKey) {
       try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${gKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              systemInstruction: { parts: [{ text: systemInstructionText }] },
-              contents,
-              generationConfig: { temperature: 0.85, maxOutputTokens: 1024 }
-            })
-          }
-        );
-        const data = await response.json();
-        if (response.ok) {
-          reply = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim();
-          if (reply) return res.status(200).json({ reply });
-        }
+        const groqReply = await callGroq();
+        return res.status(200).json({ reply: groqReply });
       } catch (err) {
-        // Try next key
+        console.warn("Groq failed, switching to Gemini Keys:", err.message);
       }
     }
 
-    if (!reply) {
-      return res.status(502).json({ error: "Arre bhai, API keys check kar le ya Vercel variables update kar le! ⚡" });
+    // Attempt Gemini Keys sequentially
+    for (const key of geminiKeys) {
+      try {
+        const geminiReply = await callGemini(key);
+        return res.status(200).json({ reply: geminiReply });
+      } catch (err) {
+        console.warn("Gemini Key failed, trying next:", err.message);
+      }
     }
 
+    // Attempt OpenRouter as final backup
+    if (openRouterKey) {
+      try {
+        const orReply = await callOpenRouter();
+        return res.status(200).json({ reply: orReply });
+      } catch (err) {
+        console.warn("OpenRouter failed:", err.message);
+      }
+    }
+
+    return res.status(502).json({ error: "System thoda busy hai, ek baar firse prompt bhej bhai! ⚡" });
+
   } catch (error) {
-    console.error("NOVA error:", error);
-    return res.status(500).json({ error: "Server error ho gaya hai." });
+    console.error("NOVA execution error:", error);
+    return res.status(500).json({ error: "Backend failover connection error." });
   }
 }
