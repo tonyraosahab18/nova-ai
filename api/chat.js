@@ -15,7 +15,6 @@ export default async function handler(req, res) {
   const currentDate = body.currentDate || new Date().toLocaleDateString();
   const currentTime = body.currentTime || "";
 
-  // Collect available keys
   const geminiKeys = [
     process.env.GEMINI_API_KEY_1,
     process.env.GEMINI_API_KEY_2,
@@ -27,7 +26,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "No Gemini API keys found in Environment Variables." });
   }
 
-  // Sanitize contents for Gemini
   const contents = messages
     .filter((message) => message && ["user", "assistant", "model"].includes(message.role))
     .map((message) => {
@@ -61,17 +59,17 @@ export default async function handler(req, res) {
     "MANDATORY EMOJI RULE: Har sentence aur response me ekdum relevant, cool, aur swaggy emojis (jaise 🔥, 💀, ⚡, 🐱, 🚀, 😎) zaroor use karna! " +
     `REAL-TIME CONTEXT: Exact live date is ${currentDate} and time is ${currentTime}. ⏰ ` +
     "CRITICAL RULE: Baar-baar apne creator ka naam ya introduction dene ki bilkul zarurat nahi hai. Direct point par baat kar. " +
-    "MATHEMATICS & SYMBOLS FORMATTING RULE: NEVER output raw LaTeX syntax like \\frac{...}{...} or complex backslash math commands. Always format equations, fractions, and symbols (like lambda, alpha, etc.) using clean, natural text, standard symbols (like /, *, +, -, ^, λ), or simple Markdown. " +
+    "MATHEMATICS & SYMBOLS FORMATTING RULE: NEVER output raw LaTeX syntax like fractions or complex backslash math commands. Always format equations, fractions, and symbols using clean, natural text, standard symbols (like /, *, +, -, ^), or simple Markdown. " +
     `Roast Level Mode: Selected Roast Intensity = Level ${roastLevel} (${roastGuideline}). ` +
-    "IMPORTANT: Bar-bar CHAOS.EXE ka link mat dena! Sirf tabhi CHAOS.EXE (<a href='https://chaos-exe.vercel.app' target='_blank'>CHAOS.EXE</a>) visit karne ko kehna jab user explicitly bole ki wo bohot stress me hai ya bore ho raha hai. " +
+    "IMPORTANT: Bar-bar CHAOS.EXE ka link mat dena! Sirf tabhi CHAOS.EXE visit karne ko kehna jab user explicitly bole ki wo bohot stress me hai ya bore ho raha hai. " +
     "Swag aur tone hamesha top-notch honi chahiye aur response hamesha Hindi (Latin) yani Hinglish me hona chahiye.";
 
-  // Fast Random Key Rotation to spread quota load instantly
+  // Random key rotation for lightning fast load distribution
   const selectedKey = geminiKeys[Math.floor(Math.random() * geminiKeys.length)];
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${selectedKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${selectedKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -86,8 +84,8 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Gemini API Error:", data?.error?.message);
-      return res.status(502).json({ error: "Suno boss! AI battery down chal rahi hai, ek second me wapas try karo! ⚡" });
+      console.error("Gemini API Error:", data);
+      return res.status(502).json({ error: data?.error?.message || "AI core temporary glitch! ⚡" });
     }
 
     const reply = (data.candidates?.[0]?.content?.parts || [])
@@ -96,7 +94,7 @@ export default async function handler(req, res) {
       .trim();
 
     if (!reply) {
-      return res.status(502).json({ error: "No output received from AI core." });
+      return res.status(502).json({ error: "Empty response from AI core." });
     }
 
     return res.status(200).json({ reply });
