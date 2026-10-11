@@ -16,13 +16,10 @@ export default async function handler(req, res) {
   const currentTime = body.currentTime || "";
 
   const groqKey = process.env.GROQ_API_KEY;
-  const openRouterKey = process.env.OPENROUTER_API_KEY;
-  const geminiKeys = [
-    process.env.GEMINI_API_KEY_1,
-    process.env.GEMINI_API_KEY_2,
-    process.env.GEMINI_API_KEY_3,
-    process.env.GEMINI_API_KEY
-  ].filter(Boolean);
+
+  if (!groqKey) {
+    return res.status(500).json({ error: "Groq API key missing in Vercel environment variables!" });
+  }
 
   const contents = messages
     .filter((message) => message && ["user", "assistant", "model"].includes(message.role))
@@ -34,14 +31,14 @@ export default async function handler(req, res) {
         parts = [{ text: message.content }];
       }
       return {
-        role: message.role === "assistant" || message.role === "model" ? "model" : "user",
-        parts: parts
+        role: message.role === "assistant" || message.role === "model" ? "assistant" : "user",
+        text: parts.map(p => p.text || "").join(" ")
       };
     })
-    .filter((msg) => msg.parts.length > 0);
+    .filter((msg) => msg.text.length > 0);
 
-  if (contents.length === 0 || !contents.some((message) => message.role === "user")) {
-    return res.status(400).json({ error: "Please send a valid user message or image." });
+  if (contents.length === 0) {
+    return res.status(400).json({ error: "Please send a valid message." });
   }
 
   let roastGuideline = "Savage & witty tone.";
@@ -62,106 +59,43 @@ export default async function handler(req, res) {
     "IMPORTANT: Bar-bar CHAOS.EXE ka link mat dena! Sirf tabhi CHAOS.EXE visit karne ko kehna jab user explicitly bole ki wo bohot stress me hai ya bore ho raha hai. " +
     "Swag aur tone hamesha top-notch honi chahiye aur response hamesha Hindi (Latin) yani Hinglish me hona chahiye.";
 
-  let reply = "";
-
   try {
-    // 1. Primary Engine: Groq API (Hyper-speed Llama model)
-    if (groqKey) {
-      try {
-        const groqMessages = [
-          { role: "system", content: systemInstructionText },
-          ...contents.map(c => ({
-            role: c.role === "model" ? "assistant" : "user",
-            content: c.parts.map(p => p.text || "").join(" ")
-          }))
-        ];
-        const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${groqKey}`
-          },
-          body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
-            messages: groqMessages,
-            temperature: 0.85,
-            max_tokens: 1024
-          })
-        });
-        const groqData = await groqRes.json();
-        if (groqRes.ok) {
-          reply = groqData.choices?.[0]?.message?.content?.trim() || "";
-          if (reply) return res.status(200).json({ reply });
-        }
-      } catch (e) {
-        console.warn("Groq fallback triggered:", e.message);
-      }
+    const groqMessages = [
+      { role: "system", content: systemInstructionText },
+      ...contents.map(c => ({ role: c.role, content: c.text }))
+    ];
+
+    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${groqKey}`
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: groqMessages,
+        temperature: 0.85,
+        max_tokens: 1024
+      })
+    });
+
+    const groqData = await groqRes.json();
+
+    if (!groqRes.ok) {
+      console.error("Groq API Error:", groqData);
+      return res.status(502).json({ error: groqData?.error?.message || "Groq core temporary issue! ⚡" });
     }
 
-    // 2. Fallback 1: OpenRouter API
-    if (!reply && openRouterKey) {
-      try {
-        const orMessages = [
-          { role: "system", content: systemInstructionText },
-          ...contents.map(c => ({
-            role: c.role === "model" ? "assistant" : "user",
-            content: c.parts.map(p => p.text || "").join(" ")
-          }))
-        ];
-        const orRes = await fetch("https://api.openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${openRouterKey}`,
-            "HTTP-Referer": "https://nova-ai.vercel.app",
-            "X-Title": "NOVA AI"
-          },
-          body: JSON.stringify({
-            model: "google/gemini-flash-1.5",
-            messages: orMessages,
-            temperature: 0.85,
-            max_tokens: 1024
-          })
-        });
-        const orData = await orRes.json();
-        if (orRes.ok) {
-          reply = orData.choices?.[0]?.message?.content?.trim() || "";
-          if (reply) return res.status(200).json({ reply });
-        }
-      } catch (e) {}
-    }
-
-    // 3. Fallback 2: Gemini Keys Backup
-    if (!reply && geminiKeys.length > 0) {
-      for (const gKey of geminiKeys) {
-        try {
-          const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${gKey}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                systemInstruction: { parts: [{ text: systemInstructionText }] },
-                contents,
-                generationConfig: { temperature: 0.85, maxOutputTokens: 1024 }
-              })
-            }
-          );
-          const data = await response.json();
-          if (response.ok) {
-            reply = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim();
-            if (reply) return res.status(200).json({ reply });
-          }
-        } catch (e) {}
-      }
-    }
+    const reply = groqData.choices?.[0]?.message?.content?.trim() || "";
 
     if (!reply) {
-      return res.status(502).json({ error: "Sare AI providers busy hain! Ek second me firse try kar bhai ⚡" });
+      return res.status(502).json({ error: "Empty response from Groq engine." });
     }
 
+    return res.status(200).json({ reply });
+
   } catch (error) {
-    console.error("NOVA error:", error);
-    return res.status(500).json({ error: "Server error ho gaya hai." });
+    console.error("NOVA backend error:", error);
+    return res.status(500).json({ error: "Server connection error." });
   }
 }
