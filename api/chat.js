@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   try {
     const body = req.body || {};
     const messages = Array.isArray(body.messages) ? body.messages : [];
-    const roastLevel = body.roastLevel || "2"; // 1: Mild, 2: Savage, 3: Nuclear
+    const roastLevel = body.roastLevel || "2";
 
     const contents = messages
       .filter((message) => message && ["user", "assistant", "model"].includes(message.role))
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
       "Swag aur tone hamesha top-notch honi chahiye aur response hamesha Hindi (Latin) yani Hinglish me hona chahiye.";
 
     const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
       {
         method: "POST",
         headers: {
