@@ -53,46 +53,14 @@ export default async function handler(req, res) {
     "IMPORTANT: Bar-bar CHAOS.EXE ka link mat dena! Sirf tabhi CHAOS.EXE (<a href='https://chaos-exe.vercel.app' target='_blank'>CHAOS.EXE</a>) visit karne ko kehna jab user explicitly bole ki wo bohot stress me hai ya bore ho raha hai. " +
     "Swag aur tone hamesha top-notch honi chahiye aur response hamesha Hindi (Latin) yani Hinglish me hona chahiye.";
 
-  // Collect all provider keys from Vercel Environment Variables
-  const geminiKeys = [
-    process.env.GEMINI_API_KEY_1,
-    process.env.GEMINI_API_KEY_2,
-    process.env.GEMINI_API_KEY_3
-  ].filter(Boolean);
-
   const groqKey = process.env.GROQ_API_KEY;
-  const openRouterKey = process.env.OPENROUTER_API_KEY;
+  const primaryGeminiKey = process.env.GEMINI_API_KEY_1 || process.env.GEMINI_API_KEY;
 
   let reply = "";
 
   try {
-    // 1. Try Gemini Keys in Sequence (Best for multimodal images & fast flash generation)
-    for (const gKey of geminiKeys) {
-      try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${gKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              systemInstruction: { parts: [{ text: systemInstructionText }] },
-              contents,
-              generationConfig: { temperature: 0.85, maxOutputTokens: 1024 }
-            })
-          }
-        );
-        const data = await response.json();
-        if (response.ok) {
-          reply = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim();
-          if (reply) return res.status(200).json({ reply });
-        }
-      } catch (e) {
-        // Try next Gemini key
-      }
-    }
-
-    // 2. Fallback to Groq API (Hyper-speed Llama inference engine)
-    if (!reply && groqKey) {
+    // 1. Primary High-Speed Hit: Groq API (Duniya ka sabse fast inference engine)
+    if (groqKey) {
       try {
         const groqMessages = [
           { role: "system", content: systemInstructionText },
@@ -116,47 +84,38 @@ export default async function handler(req, res) {
           reply = groqData.choices?.[0]?.message?.content?.trim() || "";
           if (reply) return res.status(200).json({ reply });
         }
-      } catch (e) {
-        // Fallback to OpenRouter next
-      }
+      } catch (e) {}
     }
 
-    // 3. Fallback to OpenRouter API (Universal multi-model gateway)
-    if (!reply && openRouterKey) {
+    // 2. Instant Fallback: Gemini Flash (Agar Groq me kuch issue ho)
+    if (!reply && primaryGeminiKey) {
       try {
-        const orMessages = [
-          { role: "system", content: systemInstructionText },
-          ...contents.map(c => ({ role: c.role === "model" ? "assistant" : "user", content: c.parts.map(p => p.text).join(" ") }))
-        ];
-        const orRes = await fetch("https://api.openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${openRouterKey}`,
-            "HTTP-Referer": "https://nova-ai.vercel.app",
-            "X-Title": "NOVA AI"
-          },
-          body: JSON.stringify({
-            model: "google/gemini-flash-1.5",
-            messages: orMessages,
-            temperature: 0.85,
-            max_tokens: 1024
-          })
-        });
-        const orData = await orRes.json();
-        if (orRes.ok) {
-          reply = orData.choices?.[0]?.message?.content?.trim() || "";
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${primaryGeminiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: systemInstructionText }] },
+              contents,
+              generationConfig: { temperature: 0.85, maxOutputTokens: 1024 }
+            })
+          }
+        );
+        const data = await response.json();
+        if (response.ok) {
+          reply = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim();
           if (reply) return res.status(200).json({ reply });
         }
       } catch (e) {}
     }
 
     if (!reply) {
-      return res.status(502).json({ error: "Sare AI providers abhi busy hain! 2 minute me try kar bhai ⚡" });
+      return res.status(502).json({ error: "Network slow hai bhai, ek baar firse try kar! ⚡" });
     }
 
   } catch (error) {
-    console.error("NOVA failover error:", error);
-    return res.status(500).json({ error: "Backend failover connection error." });
+    console.error("NOVA speed error:", error);
+    return res.status(500).json({ error: "Backend speed optimization error." });
   }
 }
