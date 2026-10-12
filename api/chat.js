@@ -71,7 +71,11 @@ export default async function handler(req, res) {
   const promptText = lastMsgParts.map(p => p.text || "").join(" ");
   
   const isComplexTask = /code|script|function|html|css|javascript|python|bug|error|debug|logic|explain|algorithm/i.test(promptText) || promptText.length > 250;
-  const selectedModel = isComplexTask ? "gemini-3.8-flash" : "gemini-3.5-flash-lite";
+  
+  // Supported models with automatic fallback list
+  const primaryModel = isComplexTask ? "gemini-3.8-flash" : "gemini-3.5-flash";
+  const fallbackModel = "gemini-3.5-flash";
+  const modelsToTry = [primaryModel, fallbackModel];
 
   let roastGuideline = "Savage mode (Default): Witty roast master, edgy Hinglish swag aur playful takrar.";
   if (roastLevel === "1") {
@@ -91,31 +95,38 @@ export default async function handler(req, res) {
     "Hinglish mein hi response dena.";
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${geminiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemInstructionText }] },
-          contents,
-          generationConfig: { 
-            temperature: 0.9, 
-            maxOutputTokens: 1024,
-            topP: 0.95,
-            topK: 40
-          },
-          safetySettings: [
-            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-          ]
-        })
-      }
-    );
+    let response;
+    let data;
 
-    const data = await response.json();
+    // Automatic fallback loop if high demand hits primary model
+    for (const modelToUse of modelsToTry) {
+      response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${geminiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemInstructionText }] },
+            contents,
+            generationConfig: { 
+              temperature: 0.9, 
+              maxOutputTokens: 1024,
+              topP: 0.95,
+              topK: 40
+            },
+            safetySettings: [
+              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+            ]
+          })
+        }
+      );
+
+      data = await response.json();
+      if (response.ok) break;
+    }
 
     if (!response.ok) {
       console.error("Gemini API Error:", data);
