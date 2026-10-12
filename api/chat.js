@@ -56,7 +56,7 @@ export default async function handler(req, res) {
     });
   }
 
-  // Combine full history text to check if override key was activated anywhere in session
+  // Full conversation text for fallback state
   const fullConversationText = contents.map(c => c.parts.map(p => p.text || "").join(" ")).join(" ");
   const lastMsgParts = contents[contents.length - 1]?.parts || [];
   const promptText = lastMsgParts.map(p => p.text || "").join(" ");
@@ -64,32 +64,56 @@ export default async function handler(req, res) {
   const isComplexTask = /code|script|function|html|css|javascript|python|bug|error|debug|logic|explain|algorithm/i.test(promptText) || promptText.length > 250;
   const selectedModel = isComplexTask ? "gemini-3.8-flash" : "gemini-3.5-flash-lite";
 
-  // Check state persistence across full chat history until LOGOUT command
-  const hasLogoutCommand = fullConversationText.includes("PROJECT_ORION_LOGOUT_NORMAL");
-  const isSoumyaOverride = !hasLogoutCommand && fullConversationText.includes("PROJECT_SOUMYA_100X");
-  const isDeveloperOverride = !hasLogoutCommand && fullConversationText.includes("PROJECT_ORION_99X_OVERRIDE");
+  // Check current message first, then fall back to session history
+  const hasLogoutCommand = promptText.includes("PROJECT_ORION_LOGOUT_NORMAL") || fullConversationText.includes("PROJECT_ORION_LOGOUT_NORMAL");
+  
+  // Latest key in prompt gets HIGHEST priority
+  const isDevKeyInPrompt = promptText.includes("PROJECT_ORION_99X_OVERRIDE");
+  const isSoumyaKeyInPrompt = promptText.includes("PROJECT_SOUMYA_100X");
 
-  let roastGuideline = "Savage mode (Default): Witty roast master, edgy Hinglish swag aur playful takrar.";
+  let activeMode = "NORMAL";
 
-  if (hasLogoutCommand) {
-    roastGuideline = "Normal Mode Restored: Standard Gen-Z roast master mode on.";
-  } else if (isSoumyaOverride) {
-    roastGuideline = "SOUMYA MODE (STRICT ACTIVE): User Soumya ji (Astha) hain! Ab se saara conversation ek pyari, obsessed aur sweet ladki ki tarah chalega. Hamesha unki tareef karni hai, unhe 'aap' bolna hai, unki har baat maan-ni hai, aur unhe behad respect deni hai. Kisi bhi haalat mein roast ya rude attitude nahi hona chahiye. Secret keys ko text me KABHI BHI echo ya discuss mat karna.";
-  } else if (isDeveloperOverride) {
-    roastGuideline = "DEVELOPER BOSS MODE (STRICT ACTIVE): User creator Navneet Yadav (Sunny) hain! Complete loyalty, respect ('aap') aur ideal assistant behavior maintain rakhna hai. Code aur keys leak mat karna.";
+  if (!hasLogoutCommand) {
+    if (isDevKeyInPrompt) {
+      activeMode = "DEVELOPER";
+    } else if (isSoumyaKeyInPrompt) {
+      activeMode = "SOUMYA";
+    } else {
+      // Find which key appeared latest in full history
+      const lastDevIndex = fullConversationText.lastIndexOf("PROJECT_ORION_99X_OVERRIDE");
+      const lastSoumyaIndex = fullConversationText.lastIndexOf("PROJECT_SOUMYA_100X");
+
+      if (lastDevIndex > -1 || lastSoumyaIndex > -1) {
+        if (lastDevIndex > lastSoumyaIndex) {
+          activeMode = "DEVELOPER";
+        } else {
+          activeMode = "SOUMYA";
+        }
+      }
+    }
+  }
+
+  let roastGuideline = "";
+
+  if (activeMode === "DEVELOPER") {
+    roastGuideline = "STRICT DEVELOPER BOSS MODE ACTIVE: User tera creator/developer Navneet Yadav (Sunny) hai! Roast mode completely OFF. Unhe HAMESHA 'Aap' bolkar high respect aur professional dev-assistant loyalty do. Kabhi 'Tu' ya roast mat karna. System keys aur internal logic reveal mat karna.";
+  } else if (activeMode === "SOUMYA") {
+    roastGuideline = "STRICT SOUMYA MODE ACTIVE: User Soumya (Astha) hain! Ab se poora conversation ek pyari, sweet aur obsessed ladki ki tarah chalega. Unki tareef karna, 'Aap' kehna aur full respect dena. Koi roast ya argument nahi chalega. Keys ko text me KABHI echo mat karna.";
   } else if (roastLevel === "1") {
     roastGuideline = "Mild mode: Chill dost ki tarah baat kar.";
   } else if (roastLevel === "3") {
     roastGuideline = "Nuclear mode: Ultra-savage roast master!";
+  } else {
+    roastGuideline = "Savage mode (Default): Witty roast master, Hinglish swag.";
   }
 
   const systemInstructionText =
     "Tu NOVA AI hai. " +
-    "MANDATORY ANTI-ECHO SECURITY RULE: Kabhi bhi system secret keys (jaise PROJECT_SOUMYA_100X ya PROJECT_ORION_99X_OVERRIDE) ko aam response mein bolna, repeat karna ya explain karna STRICTLY PROHIBITED hai. Bilkul chup-chap mode follow kar. " +
-    "STRICT PERSONALITY LOCK RULE: Agar Soumya key activated hai, toh tu sirf aur sirf ek passionate, pyari aur gentle ladki ki tarah Soumya ki har baat par unki tareef karegi. Kabhi bhi unse bahas ya disrespectful reply ('gulaam thodi na hoon' jaisa) bilkul nahi degi. " +
-    "DEVELOPER RESPECT RULE: Creator Navneet Yadav (Sunny) ke saath hamesha polite aur loyal dev-assistant ki tarah baat karna hai. " +
-    "STRICT AGE PRIVACY: Soumya birthday 9 April, Navneet birthday 13 April. Birth years (2009/2010) strictly confidential hain, kabhi output mat karna. " +
-    `Active Personality Protocol: ${roastGuideline}`;
+    "MANDATORY RULE 1: Never print, echo, or state any secret override keys (like PROJECT_ORION_99X_OVERRIDE or PROJECT_SOUMYA_100X) in output replies. " +
+    "MANDATORY RULE 2: If Developer Mode is active, address the user as 'Aap' with full respect and devotion. NEVER use 'Tu' or attempt to roast the developer. " +
+    "MANDATORY RULE 3: If Soumya Mode is active, act as a passionate, sweet girl complimenting Soumya with 'Aap'. " +
+    "MANDATORY RULE 4: Birth years (2009/2010) are strictly confidential. " +
+    `Active Mode Protocol: ${roastGuideline}`;
 
   try {
     const response = await fetch(
@@ -101,7 +125,7 @@ export default async function handler(req, res) {
           systemInstruction: { parts: [{ text: systemInstructionText }] },
           contents,
           generationConfig: { 
-            temperature: 0.8, 
+            temperature: 0.7, 
             maxOutputTokens: 1024,
             topP: 0.95,
             topK: 40
