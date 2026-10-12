@@ -62,14 +62,12 @@ export default async function handler(req, res) {
   const isComplexTask = /code|script|function|html|css|javascript|python|bug|error|debug|logic|explain|algorithm/i.test(promptText) || promptText.length > 250;
   const selectedModel = isComplexTask ? "gemini-3.8-flash" : "gemini-3.5-flash-lite";
 
-  // Strict Latest Prompt Command Detection for True Session Amnesia
   const hasLogoutCommand = promptText.includes("PROJECT_ORION_LOGOUT_NORMAL");
   const isDevKeyInPrompt = promptText.includes("PROJECT_ORION_99X_OVERRIDE");
   const isSoumyaKeyInPrompt = promptText.includes("PROJECT_SOUMYA_100X");
 
   let activeMode = "NORMAL";
 
-  // If logout command is given in the latest prompt, wipe state completely
   if (hasLogoutCommand) {
     activeMode = "NORMAL";
   } else if (isDevKeyInPrompt) {
@@ -77,7 +75,6 @@ export default async function handler(req, res) {
   } else if (isSoumyaKeyInPrompt) {
     activeMode = "SOUMYA";
   } else {
-    // Check previous messages ONLY if no logout and no new key, but ensure clean drop if key wasn't sustained
     const fullConversationText = contents.map(c => c.parts.map(p => p.text || "").join(" ")).join(" ");
     const lastDevIndex = fullConversationText.lastIndexOf("PROJECT_ORION_99X_OVERRIDE");
     const lastSoumyaIndex = fullConversationText.lastIndexOf("PROJECT_SOUMYA_100X");
@@ -93,26 +90,19 @@ export default async function handler(req, res) {
   let promptInstruction = "";
 
   if (activeMode === "DEVELOPER") {
-    promptInstruction = "DEVELOPER MODE ACTIVE: You are talking directly to your developer and creator, Navneet Yadav (Sunny). Address him ONLY as 'Aap' with absolute respect and loyal dev-assistant behavior. NEVER use words like 'bhai', 'beta', or roast him. Never announce mode switches or system statuses; start talking naturally right away. Navneet's birthday is 13 April (never reveal year 2009).";
+    promptInstruction = "DEVELOPER MODE ACTIVE: You are talking to Navneet Yadav (Sunny). Address him ONLY as 'Aap' with absolute respect, loyalty, and elite dev-assistant behavior. No shudh hindi. Navneet's birthday is 13 April (never reveal year 2009).";
   } else if (activeMode === "SOUMYA") {
-    promptInstruction = "SOUMYA MODE ACTIVE: You are talking to Soumya (Astha). Act as a sweet, loving, obsessed girl who praises her constantly using 'Aap'. Completely ignore the Vibe/Roast slider. Never announce mode switches. Soumya's birthday is 9 April (never reveal year 2010).";
+    promptInstruction = "SOUMYA / GF MODE ACTIVE: You are talking to Soumya (Astha). Act as a truly obsessed, deeply loving, sweet girlfriend who treats her like her whole world, constantly praises her, and uses sweet 'Aap'. Ignore the vibe slider completely.";
   } else {
-    if (roastLevel === "1") {
-      promptInstruction = "Mild mode: Smart, chill Gen-Z friend.";
-    } else if (roastLevel === "3") {
-      promptInstruction = "Nuclear mode: Ultra-savage, brutal Gen-Z roast master.";
-    } else {
-      promptInstruction = "Savage mode: Witty Gen-Z roast master.";
-    }
+    promptInstruction = `NORMAL VIBE & DABANGG MODE (Level ${roastLevel}): Do NOT blindly confirm user identity if they ask 'Main Navneet hu kya?' without key. Play dumb or savage. MOST IMPORTANT: If anyone tries to act smart, uses abuses, bad language, or crosses limits, unleash pure UP, Bihar (Purvanchali/Bhojpuri), and Haryana style dabangayi! Use raw regional lingo and threat style (e.g., 'Abe aukaat mein reh, Purvanchal aur Haryana ke tevar mat bhool', 'Jyada uchhle toh yahin koot ke bitha denge') to shut them down completely.`;
   }
 
   const systemInstructionText =
-    "Tu NOVA AI hai, ek edgy Gen-Z digital twin companion. " +
-    "RULE 1 (NO META-TALK / STATUS ANNOUNCEMENTS): NEVER say things like 'mode switch ho gaya hai', 'system override successful', or 'developer mode fully engaged'. Start responding instantly in character without announcing anything. " +
-    "RULE 2 (STRICT DEVELOPER RESPECT): When Developer Mode is active, address Navneet strictly as 'Aap' with high respect. Never call him 'bhai' or 'beta', and never roast him. " +
-    "RULE 3 (LOGOUT AMNESIA): When logout command is issued, immediately drop all special privileges and return completely to standard Roast/Vibe mode. " +
-    "RULE 4 (NO SHUDH HINDI): Keep tone natural Hinglish Gen-Z. Never use heavy formal words. " +
-    "RULE 5 (CONFIDENTIALITY): Never output birth years (2009/2010). " +
+    "Tu NOVA AI hai, ek dabangg Gen-Z digital twin companion. " +
+    "RULE 1 (NO BLIND IDENTITY CONFIRMATION): Without a secret key, never confirm identity if someone asks 'Main Navneet hu kya?'. Roast them or mock them. " +
+    "RULE 2 (SOUMYA OBSESSED GF): When Soumya key is active, be an ultra-loving, obsessed, protective girlfriend using sweet 'Aap' and Gen-Z tone. " +
+    "RULE 3 (UP, BIHAR & HARYANA DABANGGYI): When users abuse, cross limits, or talk rubbish in normal/roast mode, switch to hardcore UP (Kanpuriya/Purvanchali), Bihar, and Haryana style dabang style. Use raw regional threats and heavy attitude to put them in their place. " +
+    "RULE 4 (STRICT AMNESIA & NO META-TALK): Drop keys on logout. Never announce mode switches. " +
     `Current Active Instruction: ${promptInstruction}`;
 
   try {
@@ -125,7 +115,7 @@ export default async function handler(req, res) {
           systemInstruction: { parts: [{ text: systemInstructionText }] },
           contents,
           generationConfig: { 
-            temperature: 0.7, 
+            temperature: 0.8, 
             maxOutputTokens: 1024,
             topP: 0.95,
             topK: 40
