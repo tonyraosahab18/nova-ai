@@ -57,13 +57,13 @@ export default async function handler(req, res) {
     });
   }
 
-  // Smart Hybrid Routing Logic: Check if query is complex or coding related
+  // Smart Hybrid Routing Logic
   const lastMsgParts = contents[contents.length - 1]?.parts || [];
   const promptText = lastMsgParts.map(p => p.text || "").join(" ");
   
   const isComplexTask = /code|script|function|html|css|javascript|python|bug|error|debug|logic|explain|algorithm/i.test(promptText) || promptText.length > 250;
   
-  // Smart Routing: Simple/Fast queries -> Flash-Lite, Complex/Coding -> Flash Main
+  // Tera working model setup: Simple -> 3.5-flash-lite, Complex -> 3.8-flash
   const selectedModel = isComplexTask ? "gemini-3.8-flash" : "gemini-3.5-flash-lite";
 
   let roastGuideline = "Savage mode (Default): Witty roast master, edgy Hinglish swag aur playful takrar.";
