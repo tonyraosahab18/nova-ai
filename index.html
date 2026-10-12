@@ -126,7 +126,7 @@
         }
 
         .top-bar {
-            padding: 16px 20px 14px;
+            padding: 14px 18px 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -271,11 +271,11 @@
             font-weight: 700;
         }
 
-        /* Main Screen Live Brightness-Style Vibe Slider Bar */
+        /* Main Screen Live Brightness/Volume Style Vibe Bar */
         .live-vibe-bar {
             z-index: 10;
             padding: 8px 18px;
-            background: rgba(5, 1, 11, 0.4);
+            background: rgba(5, 1, 11, 0.45);
             backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--glass-border);
             display: flex;
@@ -368,7 +368,7 @@
         .sidebar-close { background: transparent; border: none; color: var(--neon-glow); font-size: 1.2rem; font-weight: 700; cursor: pointer; }
 
         .sidebar-new-chat-btn {
-            margin: 12px 20px;
+            margin: 16px 20px 10px;
             background: linear-gradient(135deg, var(--neon-purple), var(--neon-glow));
             color: white; border: none; padding: 12px; border-radius: 12px;
             font-size: 0.85rem; font-weight: 700; cursor: pointer; text-align: center;
@@ -421,7 +421,7 @@
 <body>
 
     <div class="app-container">
-        <!-- Dual Background Layers for Crossfade Transition -->
+        <!-- Dual Background Layers for Smooth Crossfade -->
         <div class="mascot-bg-layer bg-mild" id="bgMild"></div>
         <div class="mascot-bg-layer bg-savage active" id="bgSavage"></div>
         <div class="mascot-bg-layer bg-hyper" id="bgHyper"></div>
@@ -434,7 +434,7 @@
         <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
         <div class="sidebar-drawer" id="sidebarDrawer">
             <div class="sidebar-header">
-                <span class="sidebar-title">✦ Settings & History</span>
+                <span class="sidebar-title">✦ Chat History & Auth</span>
                 <button class="sidebar-close" id="sidebarClose">✕</button>
             </div>
             <button class="sidebar-new-chat-btn" id="sidebarNewChat">+ New Chat Session</button>
@@ -443,7 +443,7 @@
 
         <div class="top-bar">
             <div class="header-left">
-                <button class="menu-toggle-btn" id="menuToggleBtn" title="Chat Settings & History">☰</button>
+                <button class="menu-toggle-btn" id="menuToggleBtn" title="Menu">☰</button>
                 <div class="brand-col">
                     <div class="brand-row">
                         <span class="brand-name">NOVA AI</span>
@@ -462,7 +462,7 @@
             </div>
         </div>
 
-        <!-- Main Screen Brightness-Style Vibe Slider -->
+        <!-- Main Screen Live Brightness/Volume Style Vibe Bar -->
         <div class="live-vibe-bar">
             <span class="vibe-label">⚡ VIBE:</span>
             <div class="slider-wrapper">
