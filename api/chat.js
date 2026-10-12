@@ -18,11 +18,12 @@ export default async function handler(req, res) {
   const currentDate = body.currentDate || new Date().toLocaleDateString();
   const currentTime = body.currentTime || "";
 
+  // Single API Key Setup (Hybrid Routing)
   const geminiKey = process.env.GEMINI_API_KEY_3 || process.env.GEMINI_API_KEY_1 || process.env.GEMINI_API_KEY_2;
 
   if (!geminiKey) {
     return res.status(500).json({
-      error: "GEMINI_API_KEY missing in Vercel environment variables!"
+      error: "Bhai, GEMINI_API_KEY Vercel environment variables mein set nahi hai!"
     });
   }
 
@@ -56,6 +57,15 @@ export default async function handler(req, res) {
     });
   }
 
+  // Smart Hybrid Routing Logic: Check if query is complex or coding related
+  const lastMsgParts = contents[contents.length - 1]?.parts || [];
+  const promptText = lastMsgParts.map(p => p.text || "").join(" ");
+  
+  const isComplexTask = /code|script|function|html|css|javascript|python|bug|error|debug|logic|explain|algorithm/i.test(promptText) || promptText.length > 250;
+  
+  // Smart Routing: Simple/Fast queries -> Flash-Lite, Complex/Coding -> Flash Main
+  const selectedModel = isComplexTask ? "gemini-3.8-flash" : "gemini-3.5-flash-lite";
+
   let roastGuideline = "Savage mode (Default): Witty roast master, edgy Hinglish swag aur playful takrar.";
   if (roastLevel === "1") {
     roastGuideline = "Mild mode: Normal, practical, smart aur chalak dost ki tarah baat kar. Bilkul mitha, boring ya corporate apology mat dena, user ke vibe ke sath chill reh.";
@@ -77,7 +87,7 @@ export default async function handler(req, res) {
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${geminiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
