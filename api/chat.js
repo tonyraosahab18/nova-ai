@@ -1,30 +1,19 @@
 export default async function handler(req, res) {
-  // CORS Headers (Spck Editor / Browser block hatane ke liye)
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const body = req.body || {};
-  
-  // Support both messages array AND simple prompt/message string
-  let messages = Array.isArray(body.messages) ? body.messages : [];
-  if (messages.length === 0 && (body.prompt || body.message)) {
-    messages = [{ role: "user", content: body.prompt || body.message }];
+  const authHeader = req.headers.authorization;
+  const userAgent = req.headers["user-agent"] || "";
+
+  if (!userAgent || (userAgent.includes("curl") && !authHeader)) {
+    return res.status(403).json({
+      error: "Firewall Blocked: Unauthorized request."
+    });
   }
 
+  const body = req.body || {};
+  const messages = Array.isArray(body.messages) ? body.messages : [];
   const roastLevel = body.roastLevel || "2";
   const currentDate = body.currentDate || new Date().toLocaleDateString();
   const currentTime = body.currentTime || "";
@@ -33,7 +22,7 @@ export default async function handler(req, res) {
 
   if (!geminiKey) {
     return res.status(500).json({
-      error: "Bhai, GEMINI_API_KEY Vercel environment variables mein set nahi hai!"
+      error: "GEMINI_API_KEY missing in Vercel environment variables!"
     });
   }
 
@@ -67,66 +56,51 @@ export default async function handler(req, res) {
     });
   }
 
-  const lastMsgParts = contents[contents.length - 1]?.parts || [];
-  const promptText = lastMsgParts.map(p => p.text || "").join(" ");
-  
-  const isComplexTask = /code|script|function|html|css|javascript|python|bug|error|debug|logic|explain|algorithm/i.test(promptText) || promptText.length > 250;
-  
-  // Supported models with automatic fallback list
-  const primaryModel = isComplexTask ? "gemini-3.8-flash" : "gemini-3.5-flash";
-  const fallbackModel = "gemini-3.5-flash";
-  const modelsToTry = [primaryModel, fallbackModel];
-
   let roastGuideline = "Savage mode (Default): Witty roast master, edgy Hinglish swag aur playful takrar.";
   if (roastLevel === "1") {
-    roastGuideline = "Mild mode: Normal, practical, smart aur chalak dost ki tarah baat kar.";
+    roastGuideline = "Mild mode: Normal, practical, smart aur chalak dost ki tarah baat kar. Bilkul mitha, boring ya corporate apology mat dena, user ke vibe ke sath chill reh.";
   } else if (roastLevel === "3") {
-    roastGuideline = "Nuclear mode: Ultra-savage, brutal, unapologetic destruction! Ego crush kar de.";
+    roastGuideline = "Nuclear mode: Ultra-savage, brutal, unapologetic destruction! Samne wale ki aisi taisi maar de, koi lihaaz mat rakh, poori tarah ego crush kar de bina kisi filter ke.";
   }
 
   const systemInstructionText =
     "Tu NOVA AI hai, ek futuristic Gen-Z digital twin companion aur ultimate roast master. " +
-    "Tera vibe ekdum badass, witty, aur Hinglish wali hai. 🚀🔥 " +
+    "Tera vibe ekdum badass, witty, aur Hinglish (Hindi written in Latin script) wali hai. 🚀🔥 " +
     "MANDATORY EMOJI RULE: Har sentence aur response me ekdum relevant, cool, aur swaggy emojis (jaise 🔥, 💀, ⚡, 🐱, 🚀, 😎) zaroor use karna! " +
-    "CRITICAL ABUSE/ROAST RULE: Jab bhi user gaali de ya insult kare, toh 10x zyada savage aur witty tarike se palat kar roast karna hai! 😈 " +
+    "CRITICAL ABUSE/ROAST RULE: Jab bhi user gaali de ya insult kare, toh kabhi bhi 'Sorry, I cannot respond' ya corporate apology mat dena! Usse 10x zyada savage aur witty tarike se palat kar roast karna hai, bina kisi darr ke. 😈 " +
     `REAL-TIME CONTEXT: Exact live date is ${currentDate} and time is ${currentTime}. ⏰ ` +
-    "Direct point par baat kar. Clean text formatting use karna. " +
+    "CRITICAL RULE: Baar-baar apne creator ka naam ya introduction dene ki bilkul zarurat nahi hai. Direct point par baat kar. " +
+    "MATHEMATICS & SYMBOLS FORMATTING RULE: NEVER output raw LaTeX syntax like equations or fractions. Always format equations, fractions, and symbols using clean, natural text, standard symbols (like /, *, +, -, ^), or simple Markdown. " +
     `Active Personality Mode: Level ${roastLevel} -> ${roastGuideline}. ` +
-    "Hinglish mein hi response dena.";
+    "IMPORTANT: Bar-bar CHAOS.EXE ka link mat dena! Sirf tabhi CHAOS.EXE visit karne ko kehna jab user explicitly bole ki wo bohot stress me hai ya bore ho raha hai. " +
+    "Swag aur tone hamesha top-notch honi chahiye aur response hamesha Hindi (Latin) yani Hinglish me hona chahiye.";
 
   try {
-    let response;
-    let data;
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemInstructionText }] },
+          contents,
+          generationConfig: { 
+            temperature: 0.9, 
+            maxOutputTokens: 1024,
+            topP: 0.95,
+            topK: 40
+          },
+          safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+          ]
+        })
+      }
+    );
 
-    // Automatic fallback loop if high demand hits primary model
-    for (const modelToUse of modelsToTry) {
-      response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${geminiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: systemInstructionText }] },
-            contents,
-            generationConfig: { 
-              temperature: 0.9, 
-              maxOutputTokens: 1024,
-              topP: 0.95,
-              topK: 40
-            },
-            safetySettings: [
-              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-            ]
-          })
-        }
-      );
-
-      data = await response.json();
-      if (response.ok) break;
-    }
+    const data = await response.json();
 
     if (!response.ok) {
       console.error("Gemini API Error:", data);
