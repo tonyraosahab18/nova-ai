@@ -1,19 +1,30 @@
-export default async function handler(req, res) {
+Export default async function handler(req, res) {
+  // CORS Headers (Spck Editor / Browser block hatane ke liye)
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const authHeader = req.headers.authorization;
-  const userAgent = req.headers["user-agent"] || "";
-
-  if (!userAgent || (userAgent.includes("curl") && !authHeader)) {
-    return res.status(403).json({
-      error: "Firewall Blocked: Unauthorized request."
-    });
+  const body = req.body || {};
+  
+  // Support both messages array AND simple prompt/message string
+  let messages = Array.isArray(body.messages) ? body.messages : [];
+  if (messages.length === 0 && (body.prompt || body.message)) {
+    messages = [{ role: "user", content: body.prompt || body.message }];
   }
 
-  const body = req.body || {};
-  const messages = Array.isArray(body.messages) ? body.messages : [];
   const roastLevel = body.roastLevel || "2";
   const currentDate = body.currentDate || new Date().toLocaleDateString();
   const currentTime = body.currentTime || "";
@@ -22,7 +33,7 @@ export default async function handler(req, res) {
 
   if (!geminiKey) {
     return res.status(500).json({
-      error: "GEMINI_API_KEY missing in Vercel environment variables!"
+      error: "Bhai, GEMINI_API_KEY Vercel environment variables mein set nahi hai!"
     });
   }
 
@@ -56,28 +67,32 @@ export default async function handler(req, res) {
     });
   }
 
+  const lastMsgParts = contents[contents.length - 1]?.parts || [];
+  const promptText = lastMsgParts.map(p => p.text || "").join(" ");
+  
+  const isComplexTask = /code|script|function|html|css|javascript|python|bug|error|debug|logic|explain|algorithm/i.test(promptText) || promptText.length > 250;
+  const selectedModel = isComplexTask ? "gemini-3.8-flash" : "gemini-3.5-flash-lite";
+
   let roastGuideline = "Savage mode (Default): Witty roast master, edgy Hinglish swag aur playful takrar.";
   if (roastLevel === "1") {
-    roastGuideline = "Mild mode: Normal, practical, smart aur chalak dost ki tarah baat kar. Bilkul mitha, boring ya corporate apology mat dena, user ke vibe ke sath chill reh.";
+    roastGuideline = "Mild mode: Normal, practical, smart aur chalak dost ki tarah baat kar.";
   } else if (roastLevel === "3") {
-    roastGuideline = "Nuclear mode: Ultra-savage, brutal, unapologetic destruction! Samne wale ki aisi taisi maar de, koi lihaaz mat rakh, poori tarah ego crush kar de bina kisi filter ke.";
+    roastGuideline = "Nuclear mode: Ultra-savage, brutal, unapologetic destruction! Ego crush kar de.";
   }
 
   const systemInstructionText =
     "Tu NOVA AI hai, ek futuristic Gen-Z digital twin companion aur ultimate roast master. " +
-    "Tera vibe ekdum badass, witty, aur Hinglish (Hindi written in Latin script) wali hai. 🚀🔥 " +
+    "Tera vibe ekdum badass, witty, aur Hinglish wali hai. 🚀🔥 " +
     "MANDATORY EMOJI RULE: Har sentence aur response me ekdum relevant, cool, aur swaggy emojis (jaise 🔥, 💀, ⚡, 🐱, 🚀, 😎) zaroor use karna! " +
-    "CRITICAL ABUSE/ROAST RULE: Jab bhi user gaali de ya insult kare, toh kabhi bhi 'Sorry, I cannot respond' ya corporate apology mat dena! Usse 10x zyada savage aur witty tarike se palat kar roast karna hai, bina kisi darr ke. 😈 " +
+    "CRITICAL ABUSE/ROAST RULE: Jab bhi user gaali de ya insult kare, toh 10x zyada savage aur witty tarike se palat kar roast karna hai! 😈 " +
     `REAL-TIME CONTEXT: Exact live date is ${currentDate} and time is ${currentTime}. ⏰ ` +
-    "CRITICAL RULE: Baar-baar apne creator ka naam ya introduction dene ki bilkul zarurat nahi hai. Direct point par baat kar. " +
-    "MATHEMATICS & SYMBOLS FORMATTING RULE: NEVER output raw LaTeX syntax like equations or fractions. Always format equations, fractions, and symbols using clean, natural text, standard symbols (like /, *, +, -, ^), or simple Markdown. " +
+    "Direct point par baat kar. Clean text formatting use karna. " +
     `Active Personality Mode: Level ${roastLevel} -> ${roastGuideline}. ` +
-    "IMPORTANT: Bar-bar CHAOS.EXE ka link mat dena! Sirf tabhi CHAOS.EXE visit karne ko kehna jab user explicitly bole ki wo bohot stress me hai ya bore ho raha hai. " +
-    "Swag aur tone hamesha top-notch honi chahiye aur response hamesha Hindi (Latin) yani Hinglish me hona chahiye.";
+    "Hinglish mein hi response dena.";
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${geminiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -128,4 +143,4 @@ export default async function handler(req, res) {
       error: "Server connection error."
     });
   }
-}
+          }
