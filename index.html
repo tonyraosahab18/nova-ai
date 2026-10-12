@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --transition-speed: 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-speed: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             --bg-dark: #05010b;
             --neon-purple: #9d4edd;
             --neon-glow: #c77dff;
@@ -20,7 +20,7 @@
             --particle-color: rgba(199, 125, 255, 0.8);
         }
 
-        /* Dynamic Mood Themes */
+        /* Dynamic Mood Themes with buttery smooth transitions */
         body.mode-1 {
             --neon-purple: #00ff88;
             --neon-glow: #70c1b3;
@@ -84,7 +84,7 @@
             transition: box-shadow var(--transition-speed);
         }
 
-        /* Dual Background Layers for Smooth Crossfade */
+        /* Perfect Locked Center Alignment for Mascot Wallpapers to prevent jumping */
         .mascot-bg-layer {
             position: absolute;
             inset: 0;
@@ -93,7 +93,7 @@
             background-size: cover;
             z-index: 1;
             pointer-events: none;
-            filter: contrast(1.25) brightness(0.95);
+            filter: contrast(1.2) brightness(0.95);
             transition: opacity var(--transition-speed) ease-in-out;
             opacity: 0;
         }
@@ -106,7 +106,6 @@
         .bg-savage { background-image: url('file_00000000519482109897efcb371a5a26.png'); }
         .bg-hyper { background-image: url('file_00000000f9e481f79a2979dd50632264.png'); }
 
-        /* Floating Particles Canvas */
         #particlesCanvas {
             position: absolute;
             inset: 0;
@@ -126,7 +125,7 @@
         }
 
         .top-bar {
-            padding: 14px 18px 12px;
+            padding: 16px 20px 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -271,7 +270,7 @@
             font-weight: 700;
         }
 
-        /* Main Screen Live Brightness/Volume Style Vibe Bar */
+        /* Main Screen Live Volume/Brightness Style Vibe Bar */
         .live-vibe-bar {
             z-index: 10;
             padding: 8px 18px;
@@ -291,7 +290,6 @@
             color: var(--neon-glow);
             letter-spacing: 0.04em;
             text-transform: uppercase;
-            white-space: nowrap;
             transition: color var(--transition-speed);
         }
 
@@ -307,29 +305,34 @@
             -webkit-appearance: none;
             height: 6px;
             border-radius: 10px;
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.2);
             outline: none;
             cursor: pointer;
+            transition: background 0.3s ease;
         }
 
         .slider-wrapper input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
             background: var(--neon-cyan);
-            box-shadow: 0 0 12px var(--neon-cyan);
+            box-shadow: 0 0 15px var(--neon-cyan);
             cursor: pointer;
-            transition: transform 0.2s, background var(--transition-speed), box-shadow var(--transition-speed);
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background var(--transition-speed), box-shadow var(--transition-speed);
+        }
+
+        .slider-wrapper input[type="range"]::-webkit-slider-thumb:active {
+            transform: scale(1.35);
         }
 
         .vibe-badge {
             font-size: 0.75rem;
             font-weight: 800;
             color: #ffffff;
-            min-width: 82px;
+            min-width: 85px;
             text-align: right;
-            padding: 2px 8px;
+            padding: 3px 10px;
             background: var(--glass-card);
             border: 1px solid var(--glass-border);
             border-radius: 12px;
@@ -354,7 +357,9 @@
             box-shadow: 10px 0 30px rgba(0, 0, 0, 0.8);
         }
 
-        .sidebar-drawer.open { left: 0; }
+        .sidebar-drawer.open {
+            left: 0;
+        }
 
         .sidebar-header {
             padding: 20px;
@@ -364,69 +369,308 @@
             border-bottom: 1px solid var(--glass-border);
         }
 
-        .sidebar-title { font-size: 1rem; font-weight: 700; color: #f1e6ff; }
-        .sidebar-close { background: transparent; border: none; color: var(--neon-glow); font-size: 1.2rem; font-weight: 700; cursor: pointer; }
+        .sidebar-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #f1e6ff;
+        }
+
+        .sidebar-close {
+            background: transparent;
+            border: none;
+            color: var(--neon-glow);
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: color var(--transition-speed);
+        }
 
         .sidebar-new-chat-btn {
             margin: 16px 20px 10px;
             background: linear-gradient(135deg, var(--neon-purple), var(--neon-glow));
-            color: white; border: none; padding: 12px; border-radius: 12px;
-            font-size: 0.85rem; font-weight: 700; cursor: pointer; text-align: center;
-            box-shadow: 0 4px 15px var(--neon-purple); transition: all var(--transition-speed);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 0 4px 15px var(--neon-purple);
+            transition: all var(--transition-speed);
         }
 
-        .sidebar-history-list { flex: 1; overflow-y: auto; padding: 0 16px 24px; display: flex; flex-direction: column; gap: 10px; }
-        .history-item { padding: 13px 15px; background: var(--glass-card); border: 1px solid var(--glass-border); border-radius: 12px; font-size: 0.86rem; font-weight: 600; color: #ffffff; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: all var(--transition-speed); }
-        .history-item.active { background: rgba(157, 78, 221, 0.35); border-color: var(--neon-glow); }
+        .sidebar-history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 16px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
 
-        .sidebar-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 90; display: none; }
-        .sidebar-backdrop.show { display: block; }
+        .history-item {
+            padding: 13px 15px;
+            background: var(--glass-card);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            font-size: 0.86rem;
+            font-weight: 600;
+            color: #ffffff;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: all var(--transition-speed);
+        }
 
-        .chat-stream { flex: 1; overflow-y: auto; padding: 20px 18px; display: flex; flex-direction: column; gap: 18px; z-index: 10; scroll-behavior: smooth; }
-        .chat-stream::-webkit-scrollbar { display: none; }
+        .history-item.active {
+            background: rgba(157, 78, 221, 0.35);
+            border-color: var(--neon-glow);
+        }
+
+        .sidebar-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 90;
+            display: none;
+        }
+
+        .sidebar-backdrop.show {
+            display: block;
+        }
+
+        .chat-stream {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            z-index: 10;
+            scroll-behavior: smooth;
+        }
+
+        .chat-stream::-webkit-scrollbar {
+            display: none;
+        }
 
         .msg-bubble {
-            max-width: 88%; padding: 15px 18px; border-radius: 20px; font-size: 0.95rem; line-height: 1.6; font-weight: 600; backdrop-filter: blur(10px); word-wrap: break-word; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15); transition: all var(--transition-speed);
+            max-width: 88%;
+            padding: 15px 18px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            word-wrap: break-word;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            transition: all var(--transition-speed);
         }
 
-        .msg-bubble.ai { background: var(--glass-card); border: 1.5px solid var(--glass-border); color: #ffffff; align-self: flex-start; border-top-left-radius: 6px; }
-        .msg-bubble.user { background: rgba(123, 44, 191, 0.4); border: 1.5px solid var(--glass-border); color: #ffffff; align-self: flex-end; border-top-right-radius: 6px; }
-        .msg-image { max-width: 100%; border-radius: 12px; margin-bottom: 10px; display: block; border: 1px solid var(--glass-border); }
+        .msg-bubble.ai {
+            background: var(--glass-card);
+            border: 1.5px solid var(--glass-border);
+            color: #ffffff;
+            align-self: flex-start;
+            border-top-left-radius: 6px;
+        }
+
+        .msg-bubble.user {
+            background: rgba(123, 44, 191, 0.4);
+            border: 1.5px solid var(--glass-border);
+            color: #ffffff;
+            align-self: flex-end;
+            border-top-right-radius: 6px;
+        }
+
+        .msg-image {
+            max-width: 100%;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            display: block;
+            border: 1px solid var(--glass-border);
+        }
 
         .neon-time-widget {
-            background: rgba(20, 8, 35, 0.85); border: 1px solid var(--neon-glow); border-radius: 16px; padding: 16px; margin-top: 10px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 0 20px var(--neon-glow); transition: all var(--transition-speed);
+            background: rgba(20, 8, 35, 0.85);
+            border: 1px solid var(--neon-glow);
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 0 20px var(--neon-glow);
+            transition: all var(--transition-speed);
         }
-        .widget-left { display: flex; flex-direction: column; gap: 4px; }
-        .widget-time-display { font-size: 1.6rem; font-weight: 800; color: #ffffff; text-shadow: 0 0 10px var(--neon-cyan); }
-        .widget-date-display { font-size: 0.8rem; color: var(--neon-glow); font-weight: 700; }
-        .widget-timezone { font-size: 0.72rem; color: rgba(224, 170, 255, 0.6); }
-        .widget-clock-icon { font-size: 2.2rem; }
 
-        .preview-container { padding: 6px 18px 0; display: flex; gap: 8px; overflow-x: auto; z-index: 10; }
-        .preview-thumb-wrap { position: relative; width: 48px; height: 48px; border-radius: 10px; overflow: hidden; border: 1px solid var(--neon-glow); flex-shrink: 0; }
-        .preview-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
-        .preview-remove { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.75); color: white; border: none; border-radius: 50%; width: 16px; height: 16px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .widget-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
 
-        .bottom-section { padding: 12px 18px 20px; display: flex; flex-direction: column; gap: 10px; z-index: 10; background: linear-gradient(to top, var(--bg-dark) 80%, transparent); transition: background var(--transition-speed); }
-        .input-pill-box { background: var(--glass-card); border: 1.5px solid var(--glass-border); border-radius: 32px; padding: 6px 8px 6px 14px; display: flex; align-items: center; backdrop-filter: blur(10px); box-shadow: 0 4px 25px var(--neon-purple); transition: all var(--transition-speed); }
-        .text-input { flex: 1; background: transparent; border: none; color: #ffffff; font-size: 0.95rem; font-weight: 600; outline: none; padding: 8px 4px; }
-        .text-input::placeholder { color: rgba(224, 170, 255, 0.5); }
-        .icon-btn { background: transparent; border: none; color: var(--neon-glow); font-size: 1.2rem; padding: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color var(--transition-speed); }
-        .action-send-btn { background: linear-gradient(135deg, var(--neon-purple), var(--neon-glow)); color: #ffffff; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px var(--neon-glow); margin-left: 6px; flex-shrink: 0; transition: all var(--transition-speed); }
+        .widget-time-display {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #ffffff;
+            text-shadow: 0 0 10px var(--neon-cyan);
+        }
 
-        .footer-branding { text-align: center; font-size: 0.72rem; color: rgba(224, 170, 255, 0.5); letter-spacing: 0.04em; font-weight: 600; margin-top: 2px; }
-        .footer-branding a { color: var(--neon-glow); text-decoration: none; font-weight: 700; transition: color var(--transition-speed); }
+        .widget-date-display {
+            font-size: 0.8rem;
+            color: var(--neon-glow);
+            font-weight: 700;
+        }
+
+        .widget-timezone {
+            font-size: 0.72rem;
+            color: rgba(224, 170, 255, 0.6);
+        }
+
+        .widget-clock-icon {
+            font-size: 2.2rem;
+        }
+
+        .preview-container {
+            padding: 6px 18px 0;
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            z-index: 10;
+        }
+
+        .preview-thumb-wrap {
+            position: relative;
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--neon-glow);
+            flex-shrink: 0;
+        }
+
+        .preview-thumb-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .preview-remove {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(0,0,0,0.75);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bottom-section {
+            padding: 12px 18px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10;
+            background: linear-gradient(to top, var(--bg-dark) 80%, transparent);
+            transition: background var(--transition-speed);
+        }
+
+        .input-pill-box {
+            background: var(--glass-card);
+            border: 1.5px solid var(--glass-border);
+            border-radius: 32px;
+            padding: 6px 8px 6px 14px;
+            display: flex;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 25px var(--neon-purple);
+            transition: all var(--transition-speed);
+        }
+
+        .text-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-weight: 600;
+            outline: none;
+            padding: 8px 4px;
+        }
+
+        .text-input::placeholder {
+            color: rgba(224, 170, 255, 0.5);
+        }
+
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--neon-glow);
+            font-size: 1.2rem;
+            padding: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color var(--transition-speed);
+        }
+
+        .action-send-btn {
+            background: linear-gradient(135deg, var(--neon-purple), var(--neon-glow));
+            color: #ffffff;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px var(--neon-glow);
+            margin-left: 6px;
+            flex-shrink: 0;
+            transition: all var(--transition-speed);
+        }
+
+        .footer-branding {
+            text-align: center;
+            font-size: 0.72rem;
+            color: rgba(224, 170, 255, 0.5);
+            letter-spacing: 0.04em;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        .footer-branding a {
+            color: var(--neon-glow);
+            text-decoration: none;
+            font-weight: 700;
+            transition: color var(--transition-speed);
+        }
     </style>
 </head>
 <body>
 
     <div class="app-container">
-        <!-- Dual Background Layers for Smooth Crossfade -->
+        <!-- Dual Locked Background Layers for Smooth Crossfade Without Shifting -->
         <div class="mascot-bg-layer bg-mild" id="bgMild"></div>
         <div class="mascot-bg-layer bg-savage active" id="bgSavage"></div>
         <div class="mascot-bg-layer bg-hyper" id="bgHyper"></div>
 
-        <!-- Floating Particles Animation Canvas -->
+        <!-- Floating Particles Canvas Animation -->
         <canvas id="particlesCanvas"></canvas>
 
         <div class="overlay-gradient"></div>
@@ -434,16 +678,17 @@
         <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
         <div class="sidebar-drawer" id="sidebarDrawer">
             <div class="sidebar-header">
-                <span class="sidebar-title">✦ Chat History & Auth</span>
+                <span class="sidebar-title">✦ Settings & History</span>
                 <button class="sidebar-close" id="sidebarClose">✕</button>
             </div>
+            
             <button class="sidebar-new-chat-btn" id="sidebarNewChat">+ New Chat Session</button>
             <div class="sidebar-history-list" id="sidebarHistoryList"></div>
         </div>
 
         <div class="top-bar">
             <div class="header-left">
-                <button class="menu-toggle-btn" id="menuToggleBtn" title="Menu">☰</button>
+                <button class="menu-toggle-btn" id="menuToggleBtn" title="Chat Settings & History">☰</button>
                 <div class="brand-col">
                     <div class="brand-row">
                         <span class="brand-name">NOVA AI</span>
@@ -462,11 +707,11 @@
             </div>
         </div>
 
-        <!-- Main Screen Live Brightness/Volume Style Vibe Bar -->
+        <!-- Main Screen Smooth Volume-Style Vibe Slider Bar -->
         <div class="live-vibe-bar">
             <span class="vibe-label">⚡ VIBE:</span>
             <div class="slider-wrapper">
-                <input type="range" id="mainRoastSlider" min="1" max="3" value="2">
+                <input type="range" id="mainRoastSlider" min="1" max="3" value="2" step="1">
             </div>
             <span class="vibe-badge" id="vibeBadge">Savage ⚡</span>
         </div>
@@ -519,7 +764,9 @@
             try {
                 const result = await signInWithPopup(auth, provider);
                 currentUserToken = await result.user.getIdToken();
-            } catch (error) { console.error("Auth Error:", error); }
+            } catch (error) {
+                console.error("Auth Error:", error);
+            }
         });
 
         googleSignOutBtn.addEventListener('click', async () => {
@@ -547,7 +794,10 @@
             window.renderSidebarSessions();
         });
 
-        window.getCurrentAuthToken = async () => auth.currentUser ? await auth.currentUser.getIdToken() : currentUserToken;
+        window.getCurrentAuthToken = async () => {
+            if (auth.currentUser) return await auth.currentUser.getIdToken();
+            return currentUserToken;
+        };
     </script>
 
     <!-- App Logic Script -->
@@ -595,7 +845,7 @@
 
         const roastLabels = { "1": "Mild 🌿", "2": "Savage ⚡", "3": "Nuclear 💥" };
         
-        // Smooth Dynamic Mood, Theme, & Background Crossfade Handler
+        // Smooth Dynamic Mood, Theme, & Background Crossfade Handler without shifting mascot/text
         mainRoastSlider.addEventListener('input', (e) => {
             const val = e.target.value;
             vibeBadge.textContent = roastLabels[val] || "Savage ⚡";
@@ -604,7 +854,7 @@
             bodyElement.classList.remove('mode-1', 'mode-2', 'mode-3');
             bodyElement.classList.add(`mode-${val}`);
 
-            // Crossfade Background Mascot Wallpapers
+            // Crossfade Background Mascot Wallpapers smoothly
             bgMild.classList.remove('active');
             bgSavage.classList.remove('active');
             bgHyper.classList.remove('active');
@@ -719,7 +969,7 @@
                     }
                 });
             } else {
-                appendHtmlMessage("System online. NOVA active hai! ⚡ Jyada bakchodi ki toh seedha roast khayega, baaki bol kya scene hai? 😎🔥", 'ai');
+                appendHtmlMessage(getRandomWelcomeMessage(), 'ai');
             }
             chatStream.scrollTop = chatStream.scrollHeight;
         }
@@ -755,7 +1005,7 @@
             window.messageHistory = [];
             selectedImages = [];
             previewContainer.innerHTML = '';
-            chatStream.innerHTML = `<div class="msg-bubble ai">System online. NOVA active hai! ⚡ Jyada bakchodi ki toh seedha roast khayega, baaki bol kya scene hai? 😎🔥</div>`;
+            chatStream.innerHTML = `<div class="msg-bubble ai">${getRandomWelcomeMessage()}</div>`;
             sidebarDrawer.classList.remove('open');
             sidebarBackdrop.classList.remove('show');
             window.renderSidebarSessions();
