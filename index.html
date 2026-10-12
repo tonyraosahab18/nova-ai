@@ -122,7 +122,6 @@
             transition: background var(--transition-speed);
         }
 
-        /* Developer Mode Greeting Banner Animation */
         #devGreetingBanner {
             position: absolute;
             top: 75px;
@@ -449,7 +448,6 @@
 <body>
 
     <div class="app-container">
-        <!-- Developer Greeting Banner Animation -->
         <div id="devGreetingBanner">👑 Welcome Boss Navneet Yadav! System fully online ⚡</div>
 
         <div class="mascot-bg-layer bg-mild" id="bgMild"></div>
@@ -738,7 +736,8 @@
                     }
                 });
             } else {
-                appendHtmlMessage(getRandomWelcomeMessage(), 'ai');
+                const randomWelcome = welcomeMessagesPool[Math.floor(Math.random() * welcomeMessagesPool.length)];
+                appendHtmlMessage(randomWelcome, 'ai');
             }
             chatStream.scrollTop = chatStream.scrollHeight;
         }
@@ -774,7 +773,8 @@
             window.messageHistory = [];
             selectedImages = [];
             previewContainer.innerHTML = '';
-            chatStream.innerHTML = `<div class="msg-bubble ai">${getRandomWelcomeMessage()}</div>`;
+            const randomWelcome = welcomeMessagesPool[Math.floor(Math.random() * welcomeMessagesPool.length)];
+            chatStream.innerHTML = `<div class="msg-bubble ai">${randomWelcome}</div>`;
             sidebarDrawer.classList.remove('open');
             sidebarBackdrop.classList.remove('show');
             window.renderSidebarSessions();
@@ -826,7 +826,6 @@
             const text = userInput.value.trim();
             if (!text && selectedImages.length === 0) return;
 
-            // Trigger Developer Greeting Animation Banner if secret override is typed
             if (text.includes("PROJECT_ORION_99X_OVERRIDE")) {
                 devGreetingBanner.classList.add('show');
                 setTimeout(() => { devGreetingBanner.classList.remove('show'); }, 4000);
