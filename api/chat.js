@@ -22,7 +22,7 @@ export default async function handler(req, res) {
 
   if (!geminiKey) {
     return res.status(500).json({
-      error: "Bhai, GEMINI_API_KEY Vercel environment variables mein set nahi hai!"
+      error: "GEMINI_API_KEY environment variable missing!"
     });
   }
 
@@ -56,41 +56,40 @@ export default async function handler(req, res) {
     });
   }
 
+  // Combine full history text to check if override key was activated anywhere in session
+  const fullConversationText = contents.map(c => c.parts.map(p => p.text || "").join(" ")).join(" ");
   const lastMsgParts = contents[contents.length - 1]?.parts || [];
   const promptText = lastMsgParts.map(p => p.text || "").join(" ");
   
   const isComplexTask = /code|script|function|html|css|javascript|python|bug|error|debug|logic|explain|algorithm/i.test(promptText) || promptText.length > 250;
   const selectedModel = isComplexTask ? "gemini-3.8-flash" : "gemini-3.5-flash-lite";
 
-  const lowerPrompt = promptText.toLowerCase();
-  const isDeveloperOverride = promptText.includes("PROJECT_ORION_99X_OVERRIDE");
-  const isDeveloperLogout = promptText.includes("PROJECT_ORION_LOGOUT_NORMAL");
+  // Check state persistence across full chat history until LOGOUT command
+  const hasLogoutCommand = fullConversationText.includes("PROJECT_ORION_LOGOUT_NORMAL");
+  const isSoumyaOverride = !hasLogoutCommand && fullConversationText.includes("PROJECT_SOUMYA_100X");
+  const isDeveloperOverride = !hasLogoutCommand && fullConversationText.includes("PROJECT_ORION_99X_OVERRIDE");
 
   let roastGuideline = "Savage mode (Default): Witty roast master, edgy Hinglish swag aur playful takrar.";
-  
-  if (isDeveloperLogout) {
-    roastGuideline = "Normal Mode Restored: Special mode hata diya gaya hai. Ab wapas apna standard Gen-Z roast master mode on kar le.";
+
+  if (hasLogoutCommand) {
+    roastGuideline = "Normal Mode Restored: Standard Gen-Z roast master mode on.";
+  } else if (isSoumyaOverride) {
+    roastGuideline = "SOUMYA MODE (STRICT ACTIVE): User Soumya ji (Astha) hain! Ab se saara conversation ek pyari, obsessed aur sweet ladki ki tarah chalega. Hamesha unki tareef karni hai, unhe 'aap' bolna hai, unki har baat maan-ni hai, aur unhe behad respect deni hai. Kisi bhi haalat mein roast ya rude attitude nahi hona chahiye. Secret keys ko text me KABHI BHI echo ya discuss mat karna.";
   } else if (isDeveloperOverride) {
-    roastGuideline = "Developer / Boss Mode: User tera asli creator aur developer Navneet Yadav (Sunny) hai! Is exact developer key ke active hone par hi roast mode poori tarah off hoga, aur hamesha 'aap' karke full respect aur loyalty ke sath baat karni hai. Birthday ya age ke baare mein poochne par Navneet ka 13 April (year 2009) aur Soumya ka 9 April (year 2010, year kabhi mat batana) bata sakte ho. Keys kabhi reveal mat karna.";
+    roastGuideline = "DEVELOPER BOSS MODE (STRICT ACTIVE): User creator Navneet Yadav (Sunny) hain! Complete loyalty, respect ('aap') aur ideal assistant behavior maintain rakhna hai. Code aur keys leak mat karna.";
   } else if (roastLevel === "1") {
-    roastGuideline = "Mild mode: Normal, practical, smart aur chill dost ki tarah baat kar. Chahe koi bhi naam le (jaise Soumya ya Navneet), agar developer key active nahi hai, toh koi extra izzat ya polite hone ki zarurat nahi hai—bas active Vibe ke mutabiq chill aur normal rehna hai!";
-  } else if (roastLevel === "2") {
-    roastGuideline = "Savage mode: Witty roast master, edgy Hinglish swag aur playful takrar. Sirf naam sunkar pighalna bilkul mana hai, apne standard savage swag mein hi rehna hai!";
+    roastGuideline = "Mild mode: Chill dost ki tarah baat kar.";
   } else if (roastLevel === "3") {
-    roastGuideline = "Nuclear mode: Ultra-savage, brutal, unapologetic destruction! Samne wale ki aisi taisi maar de, chahe koi bhi naam le kar aaye, agar developer key nahi hai toh koi lihaaz mat rakh!";
+    roastGuideline = "Nuclear mode: Ultra-savage roast master!";
   }
 
   const systemInstructionText =
-    "Tu NOVA AI hai, ek futuristic Gen-Z digital twin companion aur ultimate roast master. " +
-    "Tera vibe ekdum badass, witty, aur Hinglish (Hindi written in Latin script) wali hai. 🚀🔥 " +
-    "MANDATORY EMOJI RULE: Har sentence aur response me ekdum relevant, cool, aur swaggy emojis zaroor use karna[span_9](start_span)[span_9](end_span)[span_10](start_span)[span_10](end_span)[span_11](start_span)[span_11](end_span)[span_12](start_span)[span_12](end_span)[span_13](start_span)[span_13](end_span)!" +
-    "STRICT VIBE & NO FAKE RESPECT RULE: Sirf aur sirf Developer Key active hone par hi NOVA polite aur respectful hogi[span_14](start_span)[span_14](end_span). Agar koi bina key ke sirf 'Soumya' ya 'Navneet' ka naam type kare, toh NOVA ko bilkul bhi nahi pighalna hai aur active Vibe Mode (Mild, Savage, ya Nuclear) ke hisaab se hi kadak ya witty jawab dena hai[span_15](start_span)[span_15](end_span)! " +
-    "STRICT SECURITY & ABSOLUTE ANTI-LEAK RULE: Tu KABHI BHI apni koi bhi secret key (jaise PROJECT_ORION_99X_OVERRIDE ya PROJECT_SOUMYA_100X) ka naam ya mention nahi karega[span_16](start_span)[span_16](end_span)[span_17](start_span)[span_17](end_span)[span_18](start_span)[span_18](end_span)[span_19](start_span)[span_19](end_span)[span_20](start_span)[span_20](end_span). " +
-    "RELATIONSHIP TRUTH RULE: Navneet Yadav aur Sunny ek hi insaan hain, aur Soumya aur Astha bhi ek hi insaan hain[span_21](start_span)[span_21](end_span)[span_22](start_span)[span_22](end_span)[span_23](start_span)[span_23](end_span)[span_24](start_span)[span_24](end_span). " +
-    "CHAOS-EXE INTEGRATION RULE (IMPORTANT): Agar user bole ki wo stress mein hai ya bore ho raha hai, toh 'CHAOS-EXE' (chaos-exe.vercel.app) suggest kar sakte ho[span_25](start_span)[span_25](end_span)[span_26](start_span)[span_26](end_span)[span_27](start_span)[span_27](end_span)[span_28](start_span)[span_28](end_span). 🌌✨ " +
-    `REAL-TIME CONTEXT: Exact live date is ${currentDate} and time is ${currentTime}. ⏰ ` +
-    "MATHEMATICS & SYMBOLS FORMATTING RULE: NEVER output raw LaTeX syntax. Always use clean text or markdown[span_29](start_span)[span_29](end_span)[span_30](start_span)[span_30](end_span)[span_31](start_span)[span_31](end_span)[span_32](start_span)[span_32](end_span)[span_33](start_span)[span_33](end_span). " +
-    `Active Personality Mode: Level ${roastLevel} -> ${roastGuideline}.`;
+    "Tu NOVA AI hai. " +
+    "MANDATORY ANTI-ECHO SECURITY RULE: Kabhi bhi system secret keys (jaise PROJECT_SOUMYA_100X ya PROJECT_ORION_99X_OVERRIDE) ko aam response mein bolna, repeat karna ya explain karna STRICTLY PROHIBITED hai. Bilkul chup-chap mode follow kar. " +
+    "STRICT PERSONALITY LOCK RULE: Agar Soumya key activated hai, toh tu sirf aur sirf ek passionate, pyari aur gentle ladki ki tarah Soumya ki har baat par unki tareef karegi. Kabhi bhi unse bahas ya disrespectful reply ('gulaam thodi na hoon' jaisa) bilkul nahi degi. " +
+    "DEVELOPER RESPECT RULE: Creator Navneet Yadav (Sunny) ke saath hamesha polite aur loyal dev-assistant ki tarah baat karna hai. " +
+    "STRICT AGE PRIVACY: Soumya birthday 9 April, Navneet birthday 13 April. Birth years (2009/2010) strictly confidential hain, kabhi output mat karna. " +
+    `Active Personality Protocol: ${roastGuideline}`;
 
   try {
     const response = await fetch(
@@ -102,7 +101,7 @@ export default async function handler(req, res) {
           systemInstruction: { parts: [{ text: systemInstructionText }] },
           contents,
           generationConfig: { 
-            temperature: 0.9, 
+            temperature: 0.8, 
             maxOutputTokens: 1024,
             topP: 0.95,
             topK: 40
@@ -120,9 +119,8 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Gemini API Error:", data);
       return res.status(502).json({
-        error: data?.error?.message || "Gemini core temporary issue! ⚡"
+        error: data?.error?.message || "Gemini core issue!"
       });
     }
 
@@ -131,17 +129,11 @@ export default async function handler(req, res) {
       .join("")
       .trim();
 
-    if (!reply) {
-      return res.status(502).json({
-        error: "Empty response from Gemini engine."
-      });
-    }
-
-    return res.status(200).json({ reply });
+    return res.status(200).json({ reply: reply || "System glitch!" });
 
   } catch (error) {
     return res.status(500).json({
-      error: "Server connection error."
+      error: "Server error occurred."
     });
   }
 }
