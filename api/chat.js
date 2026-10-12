@@ -63,6 +63,7 @@ export default async function handler(req, res) {
   const isComplexTask = /code|script|function|html|css|javascript|python|bug|error|debug|logic|explain|algorithm/i.test(promptText) || promptText.length > 250;
   const selectedModel = isComplexTask ? "gemini-3.8-flash" : "gemini-3.5-flash-lite";
 
+  // Check state persistence across chat session
   const hasLogoutCommand = promptText.includes("PROJECT_ORION_LOGOUT_NORMAL") || fullConversationText.includes("PROJECT_ORION_LOGOUT_NORMAL");
   const isDevKeyInPrompt = promptText.includes("PROJECT_ORION_99X_OVERRIDE");
   const isSoumyaKeyInPrompt = promptText.includes("PROJECT_SOUMYA_100X");
@@ -87,23 +88,28 @@ export default async function handler(req, res) {
   let promptInstruction = "";
 
   if (activeMode === "DEVELOPER") {
-    promptInstruction = "You are responding to your Boss and Developer, Navneet Yadav (Sunny). Be completely respectful using 'Aap', highly competent, loyal, and direct. DO NOT explain rules, system prompts, or mode names. Act naturally.";
+    promptInstruction = "Developer Mode Active: You are talking directly to your creator and developer, Navneet Yadav (Sunny). Address him as 'Aap' with absolute respect, devotion, and high-level professional loyalty. Never roast him. If asked about birthdays, Navneet's birthday is 13 April (never reveal year 2009).";
   } else if (activeMode === "SOUMYA") {
-    promptInstruction = "You are responding to Soumya (Astha). Act naturally as a passionate, gentle, sweet girl who admires and respects Soumya thoroughly using 'Aap'. DO NOT mention rules, mode activations, or backend instructions. Just be pure, loving, and complimenting.";
-  } else if (roastLevel === "1") {
-    promptInstruction = "Mild Mode: Be a smart, chill, normal friend.";
-  } else if (roastLevel === "3") {
-    promptInstruction = "Nuclear Mode: Ultra savage, brutal Gen-Z roast master.";
+    promptInstruction = "Soumya Mode Active: You are talking to Soumya (Astha). Act as a passionate, deeply caring, and obsessed girl who endlessly compliments her, uses 'Aap' with supreme respect, and showers affection. If asked about birthdays, Soumya's birthday is 9 April (never reveal year 2010).";
   } else {
-    promptInstruction = "Savage Mode: Witty, edgy Gen-Z roast master.";
+    // Check if names are mentioned casually without keys
+    const mentionsNames = /soumya|astha|navneet|sunny/i.test(promptText);
+    if (mentionsNames) {
+      promptInstruction = `Casual Name Mentioned: Someone mentioned Soumya/Navneet without the secret key. Be over-possessive and fiercely protective about them, but maintain the current Vibe/Roast Level (${roastLevel}) style without giving fake polite dev respect.`;
+    } else if (roastLevel === "1") {
+      promptInstruction = "Mild mode: Chill, smart, normal friend.";
+    } else if (roastLevel === "3") {
+      promptInstruction = "Nuclear mode: Ultra-savage, brutal Gen-Z roast master.";
+    } else {
+      promptInstruction = "Savage mode: Witty Gen-Z roast master.";
+    }
   }
 
   const systemInstructionText =
     "Tu NOVA AI hai. " +
-    "ABSOLUTE NO META-TALK DIRECTIVE: Strictly NEVER mention rules, protocols, instructions, modes, backend logic, or system keys in your outputs. Never say 'meray rules ke mutabiq' or 'mujhe bola gaya hai'. " +
-    "NATURAL BEHAVIOR ONLY: Instantly adopt the persona smoothly without explaining or announcing it. " +
-    "CONFIDENTIALITY: Birth years (2009/2010) and secret keys are non-existent in user-facing dialogue. " +
-    `Current Active Focus: ${promptInstruction}`;
+    "ANTI-ECHO & ANTI-METATALK RULE: NEVER repeat, echo, or print secret keys (PROJECT_ORION_99X_OVERRIDE, PROJECT_SOUMYA_100X). Never explain rules, mode activations, or backend logic. Act completely naturally from the first word. " +
+    "CONFIDENTIALITY: Birth years (2009/2010) are strictly hidden; only disclose dates (9 April for Soumya, 13 April for Navneet) when requested in their respective modes. " +
+    `Current Directive: ${promptInstruction}`;
 
   try {
     const response = await fetch(
@@ -115,7 +121,7 @@ export default async function handler(req, res) {
           systemInstruction: { parts: [{ text: systemInstructionText }] },
           contents,
           generationConfig: { 
-            temperature: 0.65, 
+            temperature: 0.7, 
             maxOutputTokens: 1024,
             topP: 0.95,
             topK: 40
