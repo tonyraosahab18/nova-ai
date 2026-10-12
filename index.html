@@ -826,7 +826,17 @@
             const text = userInput.value.trim();
             if (!text && selectedImages.length === 0) return;
 
+            // Trigger Specific Greeting Banners based on Keys
             if (text.includes("PROJECT_ORION_99X_OVERRIDE")) {
+                devGreetingBanner.textContent = "👑 Welcome Boss Navneet Yadav! System fully online ⚡";
+                devGreetingBanner.classList.add('show');
+                setTimeout(() => { devGreetingBanner.classList.remove('show'); }, 4000);
+            } else if (text.includes("PROJECT_SOUMYA_100X")) {
+                devGreetingBanner.textContent = "🌸 Welcome Soumya Ji! System at your service ✨";
+                devGreetingBanner.classList.add('show');
+                setTimeout(() => { devGreetingBanner.classList.remove('show'); }, 4000);
+            } else if (text.includes("PROJECT_ORION_LOGOUT_NORMAL")) {
+                devGreetingBanner.textContent = "🔄 Normal Mode Restored!";
                 devGreetingBanner.classList.add('show');
                 setTimeout(() => { devGreetingBanner.classList.remove('show'); }, 4000);
             }
