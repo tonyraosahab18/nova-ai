@@ -576,7 +576,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, push, set, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyBFZgeMPYIdpTR92DUkVFz-7h1X2xOdH3A",
@@ -648,6 +648,7 @@
         window.isArenaMode = false;
         window.arenaRoomCode = null;
         let guestNickname = localStorage.getItem('nova_guest_nick') || '';
+        let arenaMessagesUnsubscribe = null;
 
         arenaToggleBtn.addEventListener('click', async () => {
             window.isArenaMode = !window.isArenaMode;
@@ -668,60 +669,96 @@
                 }
 
                 codeInput = codeInput.trim().toUpperCase();
-                if (codeInput === 'CREATE') {
-                    window.arenaRoomCode = 'ROOM_' + Math.random().toString(36).substring(2, 8).toUpperCase();
-                    alert(`Arena Room Created Successfully!\nShare this Code with friends: ${window.arenaRoomCode}`);
-                } else {
-                    window.arenaRoomCode = codeInput;
-                }
-
                 if (!guestNickname) {
                     guestNickname = prompt("Enter your Nickname for Arena:", "DabanggUser") || "User";
                     localStorage.setItem('nova_guest_nick', guestNickname);
                 }
 
-                listenToArenaRoom(window.arenaRoomCode);
+                if (codeInput === 'CREATE') {
+                    await createArenaRoom();
+                } else {
+                    window.arenaRoomCode = codeInput;
+                    listenToArenaRoom(window.arenaRoomCode);
+                }
 
             } else {
                 document.body.classList.remove('arena-active');
                 arenaToggleBtn.textContent = "🌐 Arena";
                 brandTitle.textContent = "NOVA AI";
                 vibeLabelText.textContent = "⚡ VIBE:";
+                
+                if (arenaMessagesUnsubscribe) {
+                    arenaMessagesUnsubscribe();
+                    arenaMessagesUnsubscribe = null;
+                }
                 window.arenaRoomCode = null;
                 window.loadCurrentSession();
             }
         });
 
-        function listenToArenaRoom(roomCode) {
-            const roomMessagesRef = ref(db, `arena_rooms/${roomCode}/messages`);
-            chatStream.innerHTML = `<div class="msg-bubble ai">🌐 Connected to Live Arena Room: <strong>#${roomCode}</strong> as <em>${guestNickname}</em>. 🔥</div>`;
+        async function createArenaRoom() {
+            const roomCode = 'ROOM_' + Math.random().toString(36).substring(2, 8).toUpperCase();
+            const roomRef = ref(db, `arena_rooms/${roomCode}`);
 
-            onChildAdded(roomMessagesRef, (snapshot) => {
+            try {
+                await set(roomRef, {
+                    createdAt: Date.now(),
+                    createdBy: guestNickname || "Guest",
+                    status: "active"
+                });
+
+                window.arenaRoomCode = roomCode;
+                alert(`Arena Room Created Successfully!\nShare this Code with friends: ${roomCode}`);
+                listenToArenaRoom(roomCode);
+            } catch (error) {
+                console.error("Arena room creation failed:", error);
+                alert("Room create nahi hua. Firebase Database Rules aur connection check karo.");
+                window.isArenaMode = false;
+                document.body.classList.remove('arena-active');
+                arenaToggleBtn.textContent = "🌐 Arena";
+                brandTitle.textContent = "NOVA AI";
+                vibeLabelText.textContent = "⚡ VIBE:";
+            }
+        }
+
+        function listenToArenaRoom(roomCode) {
+            if (arenaMessagesUnsubscribe) {
+                arenaMessagesUnsubscribe();
+                arenaMessagesUnsubscribe = null;
+            }
+
+            const roomMessagesRef = ref(db, `arena_rooms/${roomCode}/messages`);
+            chatStream.innerHTML = `<div class="msg-bubble ai">🌐 Connected to Live Arena Room: <strong>#${escapeHtml(roomCode)}</strong> as <em>${guestNickname}</em>. 🔥</div>`;
+
+            arenaMessagesUnsubscribe = onChildAdded(roomMessagesRef, (snapshot) => {
                 const msgData = snapshot.val();
-                if (msgData) {
-                    if (msgData.sender === 'ai') {
-                        appendHtmlMessage(msgData.text, 'ai');
-                    } else {
-                        const displayTxt = `[${msgData.user}]: ${msgData.text}`;
-                        appendUserMessage(displayTxt, msgData.images || []);
-                    }
-                    chatStream.scrollTop = chatStream.scrollHeight;
+                if (!msgData) return;
+
+                if (msgData.sender === 'ai') {
+                    appendHtmlMessage(msgData.text || "", 'ai');
+                } else {
+                    const displayTxt = `[${msgData.user || "User"}]: ${msgData.text || ""}`;
+                    appendUserMessage(displayTxt, Array.isArray(msgData.images) ? msgData.images : []);
                 }
+                chatStream.scrollTop = chatStream.scrollHeight;
+            }, (error) => {
+                console.error("Arena listener error:", error);
+                appendMessage("⚠️ Arena sync failed. Firebase Rules check karein.", "ai");
             });
         }
 
         window.sendArenaMessage = async function(text, images) {
             const roomMessagesRef = ref(db, `arena_rooms/${window.arenaRoomCode}/messages`);
             
-            await push(roomMessagesRef, {
-                user: guestNickname,
-                text: text,
-                images: images || [],
-                sender: 'user',
-                timestamp: Date.now()
-            });
-
             try {
+                await push(roomMessagesRef, {
+                    user: guestNickname,
+                    text: text,
+                    images: images || [],
+                    sender: 'user',
+                    timestamp: Date.now()
+                });
+
                 let token = window.getCurrentAuthToken ? await window.getCurrentAuthToken() : null;
                 const headers = { 'Content-Type': 'application/json' };
                 if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -1033,7 +1070,6 @@
             let imgs = [...selectedImages];
             userInput.value = ''; selectedImages = []; previewContainer.innerHTML = '';
 
-            // FIX: If Arena mode is active, directly trigger Arena sync message
             if (window.isArenaMode && window.sendArenaMessage) {
                 await window.sendArenaMessage(text, imgs);
                 scrollToBottom();
