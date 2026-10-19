@@ -576,10 +576,12 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyBFZgeMPYIdpTR92DUkVFz-7h1X2xOdH3A",
           authDomain: "nova-ai-57072.firebaseapp.com",
+          databaseURL: "https://nova-ai-57072-default-rtdb.firebaseio.com",
           projectId: "nova-ai-57072",
           storageBucket: "nova-ai-57072.firebasestorage.app",
           messagingSenderId: "672770051843",
@@ -589,6 +591,7 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getDatabase(app);
         const provider = new GoogleAuthProvider();
 
         const googleSignInBtn = document.getElementById('googleSignInBtn');
@@ -632,6 +635,130 @@
         });
 
         window.getCurrentAuthToken = async () => auth.currentUser ? await auth.currentUser.getIdToken() : currentUserToken;
+
+        // --- ARENA REAL-TIME SYNC LOGIC ---
+        const chatStream = document.getElementById('chatStream');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const arenaToggleBtn = document.getElementById('arenaToggleBtn');
+        const brandTitle = document.getElementById('brandTitle');
+        const vibeLabelText = document.getElementById('vibeLabelText');
+        const mainRoastSlider = document.getElementById('mainRoastSlider');
+
+        window.isArenaMode = false;
+        window.arenaRoomCode = null;
+        let guestNickname = localStorage.getItem('nova_guest_nick') || '';
+
+        arenaToggleBtn.addEventListener('click', async () => {
+            window.isArenaMode = !window.isArenaMode;
+            if (window.isArenaMode) {
+                document.body.classList.add('arena-active');
+                arenaToggleBtn.textContent = "💬 Exit Arena";
+                brandTitle.textContent = "NOVA ARENA";
+                vibeLabelText.textContent = "⚡ ARENA MODE:";
+
+                let codeInput = prompt("Enter Room Code to Join, or type 'create' to start a new Arena room:", "");
+                if (!codeInput) {
+                    window.isArenaMode = false;
+                    document.body.classList.remove('arena-active');
+                    arenaToggleBtn.textContent = "🌐 Arena";
+                    brandTitle.textContent = "NOVA AI";
+                    vibeLabelText.textContent = "⚡ VIBE:";
+                    return;
+                }
+
+                codeInput = codeInput.trim().toUpperCase();
+                if (codeInput === 'CREATE') {
+                    window.arenaRoomCode = 'ROOM_' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                    alert(`Arena Room Created Successfully!\nShare this Code with friends: ${window.arenaRoomCode}`);
+                } else {
+                    window.arenaRoomCode = codeInput;
+                }
+
+                if (!guestNickname) {
+                    guestNickname = prompt("Enter your Nickname for Arena:", "DabanggUser") || "User";
+                    localStorage.setItem('nova_guest_nick', guestNickname);
+                }
+
+                listenToArenaRoom(window.arenaRoomCode);
+
+            } else {
+                document.body.classList.remove('arena-active');
+                arenaToggleBtn.textContent = "🌐 Arena";
+                brandTitle.textContent = "NOVA AI";
+                vibeLabelText.textContent = "⚡ VIBE:";
+                window.arenaRoomCode = null;
+                window.loadCurrentSession();
+            }
+        });
+
+        function listenToArenaRoom(roomCode) {
+            const roomMessagesRef = ref(db, `arena_rooms/${roomCode}/messages`);
+            chatStream.innerHTML = `<div class="msg-bubble ai">🌐 Connected to Live Arena Room: <strong>#${roomCode}</strong> as <em>${guestNickname}</em>. 🔥</div>`;
+
+            onChildAdded(roomMessagesRef, (snapshot) => {
+                const msgData = snapshot.val();
+                if (msgData) {
+                    if (msgData.sender === 'ai') {
+                        appendHtmlMessage(msgData.text, 'ai');
+                    } else {
+                        const displayTxt = `[${msgData.user}]: ${msgData.text}`;
+                        appendUserMessage(displayTxt, msgData.images || []);
+                    }
+                    chatStream.scrollTop = chatStream.scrollHeight;
+                }
+            });
+        }
+
+        window.sendArenaMessage = async function(text, images) {
+            const roomMessagesRef = ref(db, `arena_rooms/${window.arenaRoomCode}/messages`);
+            
+            await push(roomMessagesRef, {
+                user: guestNickname,
+                text: text,
+                images: images || [],
+                sender: 'user',
+                timestamp: Date.now()
+            });
+
+            try {
+                let token = window.getCurrentAuthToken ? await window.getCurrentAuthToken() : null;
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                const now = new Date();
+                const currentDateStr = now.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                const currentTimeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ 
+                        messages: [{ role: 'user', content: `[Arena Room ${window.arenaRoomCode} - User ${guestNickname}]: ${text}` }],
+                        roastLevel: mainRoastSlider.value || "2",
+                        currentDate: currentDateStr,
+                        currentTime: currentTimeStr
+                    })
+                });
+
+                const data = await res.json();
+                if (data.reply) {
+                    let formattedText = escapeHtml(data.reply)
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*\*/g, '<em>$1</em>')
+                        .replace(/\n/g, '<br>');
+
+                    await push(roomMessagesRef, {
+                        user: 'NOVA AI',
+                        text: `<div>${formattedText}</div>`,
+                        sender: 'ai',
+                        timestamp: Date.now()
+                    });
+                }
+            } catch (err) {
+                console.error("Arena AI Error:", err);
+            }
+        };
     </script>
 
     <script>
@@ -659,50 +786,9 @@
         const bgHyper = document.getElementById('bgHyper');
         const bodyElement = document.body;
 
-        const arenaToggleBtn = document.getElementById('arenaToggleBtn');
-        const brandTitle = document.getElementById('brandTitle');
-        const vibeLabelText = document.getElementById('vibeLabelText');
-
         window.messageHistory = [];
         let selectedImages = [];
         let deferredPrompt;
-        let isArenaMode = false;
-        let arenaRoomCode = null;
-        let guestNickname = localStorage.getItem('nova_guest_nick') || '';
-
-        arenaToggleBtn.addEventListener('click', () => {
-            isArenaMode = !isArenaMode;
-            if (isArenaMode) {
-                bodyElement.classList.add('arena-active');
-                arenaToggleBtn.textContent = "💬 Exit Arena";
-                brandTitle.textContent = "NOVA ARENA";
-                vibeLabelText.textContent = "⚡ ARENA MODE:";
-                
-                if (!arenaRoomCode) {
-                    const codeInput = prompt("Enter Room Code to Join, or type 'create' to start a new Arena room:", "CHAOS_99X");
-                    if (codeInput && codeInput.toLowerCase() === 'create') {
-                        arenaRoomCode = 'ROOM_' + Math.random().toString(36).substring(2, 8).toUpperCase();
-                        alert(`Arena Room Created! Share this Code with friends: ${arenaRoomCode}`);
-                    } else if (codeInput) {
-                        arenaRoomCode = codeInput.trim().toUpperCase();
-                    } else {
-                        arenaRoomCode = "LOBBY_01";
-                    }
-                }
-                if (!guestNickname) {
-                    guestNickname = prompt("Enter your Guest Nickname for Arena:", "DabanggUser") || "User";
-                    localStorage.setItem('nova_guest_nick', guestNickname);
-                }
-
-                chatStream.innerHTML = `<div class="msg-bubble ai">🌐 Connected to Arena Room: <strong>#${arenaRoomCode}</strong> as <em>${guestNickname}</em>. Send a message to start multiplayer chaos with NOVA! 🔥</div>`;
-            } else {
-                bodyElement.classList.remove('arena-active');
-                arenaToggleBtn.textContent = "🌐 Arena";
-                brandTitle.textContent = "NOVA AI";
-                vibeLabelText.textContent = "⚡ VIBE:";
-                window.loadCurrentSession();
-            }
-        });
         
         function getStorageKey() {
             const user = window.currentFirebaseUser;
@@ -713,7 +799,7 @@
         let currentSessionId = 'session_' + Date.now();
 
         const welcomeMessagesPool = [
-            "System online. NOVA active hai! ⚡ Jyada bakwas ki toh seedha roast khayega, baaki bol kya scene hai? 😎🔥",
+            "System online. NOVA active hai! ⚡ Jyada bakchodi ki toh seedha roast khayega, baaki bol kya scene hai? 😎🔥",
             "System fully loaded! AI core online. Bataa aaj kya cook karna hai? 🚀✨",
             "NOVA operational. Focus high, excuses zero. Bata boss, kya task niptana hai? 🔥🎯"
         ];
@@ -819,7 +905,7 @@
         }
 
         window.loadCurrentSession = function() {
-            if (isArenaMode) return;
+            if (window.isArenaMode) return;
             const storageKey = getStorageKey();
             chatStream.innerHTML = '';
             window.messageHistory = [];
@@ -845,7 +931,7 @@
         }
 
         function saveMessageToStorage(role, text) {
-            if (isArenaMode) return;
+            if (window.isArenaMode) return;
             const storageKey = getStorageKey();
             if (!storageKey) {
                 if (!guestSessionStorage[currentSessionId]) guestSessionStorage[currentSessionId] = { title: text.substring(0, 30), messages: [] };
@@ -872,7 +958,7 @@
         sidebarBackdrop.addEventListener('click', () => { sidebarDrawer.classList.remove('open'); sidebarBackdrop.classList.remove('show'); });
 
         sidebarNewChat.addEventListener('click', () => {
-            if (isArenaMode) return;
+            if (window.isArenaMode) return;
             currentSessionId = 'session_' + Date.now();
             window.messageHistory = [];
             selectedImages = [];
@@ -945,26 +1031,29 @@
             }
 
             let imgs = [...selectedImages];
-            
-            let displayUserText = isArenaMode ? `[${guestNickname}]: ${text}` : text;
-            appendUserMessage(displayUserText, imgs);
-            
             userInput.value = ''; selectedImages = []; previewContainer.innerHTML = '';
+
+            // FIX: If Arena mode is active, directly trigger Arena sync message
+            if (window.isArenaMode && window.sendArenaMessage) {
+                await window.sendArenaMessage(text, imgs);
+                scrollToBottom();
+                return;
+            }
+
+            appendUserMessage(text, imgs);
             scrollToBottom();
 
             let parts = [];
-            let payloadText = isArenaMode ? `[Arena Room ${arenaRoomCode} - User ${guestNickname}]: ${text}` : text;
-            if (payloadText) parts.push({ text: payloadText });
+            if (text) parts.push({ text });
             imgs.forEach(img => parts.push({ inlineData: { mimeType: img.mimeType, data: img.data } }));
-            
             window.messageHistory.push({ role: "user", content: parts });
-            if (!isArenaMode && text) saveMessageToStorage('user', text);
+            if (text) saveMessageToStorage('user', text);
 
             if (!navigator.onLine) {
                 const offlineMsg = "System offline 🔌. Check your connection!";
                 appendHtmlMessage(offlineMsg, 'ai');
                 window.messageHistory.push({ role: "model", content: offlineMsg });
-                if (!isArenaMode) saveMessageToStorage('model', offlineMsg);
+                saveMessageToStorage('model', offlineMsg);
                 scrollToBottom();
                 return;
             }
@@ -1004,7 +1093,7 @@
                     let finalReplyHtml = `<div>${formattedText}</div>`;
 
                     const lowerText = text.toLowerCase();
-                    if (!isArenaMode && (lowerText.includes('time') || lowerText.includes('date') || lowerText.includes('din') || lowerText.includes('aaj'))) {
+                    if (lowerText.includes('time') || lowerText.includes('date') || lowerText.includes('din') || lowerText.includes('aaj')) {
                         finalReplyHtml += `
                             <div class="neon-time-widget">
                                 <div class="widget-left">
@@ -1019,7 +1108,7 @@
 
                     appendHtmlMessage(finalReplyHtml, 'ai');
                     window.messageHistory.push({ role: "model", content: data.reply });
-                    if (!isArenaMode) saveMessageToStorage('model', data.reply);
+                    saveMessageToStorage('model', data.reply);
                 } else if (data.error) {
                     appendMessage(`⚠️ Error: ${data.error}`, 'ai');
                 } else {
