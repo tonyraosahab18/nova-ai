@@ -62,20 +62,6 @@
             --input-box-shadow: 0 4px 25px rgba(255, 51, 102, 0.5);
         }
 
-        /* Arena Mode Dynamic Theme */
-        body.arena-active {
-            --bg-dark: #080214;
-            --neon-purple: #ff00ff;
-            --neon-glow: #00ffff;
-            --neon-cyan: #00ffcc;
-            --glass-card: rgba(15, 5, 30, 0.45);
-            --glass-border: rgba(0, 255, 255, 0.4);
-            --particle-color: rgba(0, 255, 255, 0.9);
-            --input-box-bg: rgba(15, 5, 30, 0.6);
-            --input-box-border: rgba(255, 0, 255, 0.5);
-            --input-box-shadow: 0 4px 30px rgba(255, 0, 255, 0.4);
-        }
-
         * {
             box-sizing: border-box;
             margin: 0;
@@ -129,19 +115,6 @@
         .bg-mild { background-image: url('IMG-20261013-WA0068.jpg'); }
         .bg-savage { background-image: url('IMG-20261013-WA0072.jpg'); }
         .bg-hyper { background-image: url('IMG-20261013-WA0070.jpg'); }
-
-        .arena-bg-layer {
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at center, rgba(25, 5, 50, 0.8) 0%, rgba(5, 1, 15, 0.95) 100%);
-            z-index: 1;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity var(--transition-speed);
-        }
-        body.arena-active .arena-bg-layer {
-            opacity: 1;
-        }
 
         #particlesCanvas {
             position: absolute;
@@ -282,7 +255,7 @@
 
         .header-buttons {
             display: flex;
-            gap: 6px;
+            gap: 8px;
             align-items: center;
         }
 
@@ -290,9 +263,9 @@
             background: var(--glass-card);
             border: 1px solid var(--glass-border);
             color: #f1e6ff;
-            padding: 7px 12px;
+            padding: 7px 14px;
             border-radius: 20px;
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             font-weight: 700;
             cursor: pointer;
             backdrop-filter: blur(8px);
@@ -304,13 +277,6 @@
             background: linear-gradient(135deg, var(--neon-purple), var(--neon-glow));
             color: #ffffff;
             border: none;
-        }
-
-        #arenaToggleBtn {
-            background: linear-gradient(135deg, #ff00ff, #00ffff);
-            color: #000000;
-            border: none;
-            font-weight: 800;
         }
 
         .user-pill {
@@ -482,6 +448,7 @@
 
         .bottom-section { padding: 12px 18px 20px; display: flex; flex-direction: column; gap: 10px; z-index: 10; background: linear-gradient(to top, var(--bg-dark) 80%, transparent); transition: background var(--transition-speed); }
         
+        /* Updated Input Pill Box using dynamic Vibe CSS Variables */
         .input-pill-box { 
             background: var(--input-box-bg); 
             border: 1.5px solid var(--input-box-border); 
@@ -511,7 +478,6 @@
         <div class="mascot-bg-layer bg-mild" id="bgMild"></div>
         <div class="mascot-bg-layer bg-savage active" id="bgSavage"></div>
         <div class="mascot-bg-layer bg-hyper" id="bgHyper"></div>
-        <div class="arena-bg-layer" id="arenaBg"></div>
 
         <canvas id="particlesCanvas"></canvas>
         <div class="overlay-gradient"></div>
@@ -531,14 +497,13 @@
                 <button class="menu-toggle-btn" id="menuToggleBtn" title="Menu">☰</button>
                 <div class="brand-col">
                     <div class="brand-row">
-                        <span class="brand-name" id="brandTitle">NOVA AI</span>
+                        <span class="brand-name">NOVA AI</span>
                         <div class="pulse-dot" id="statusDot"></div>
                     </div>
                     <span class="status-tag" id="statusText">System online ⚡</span>
                 </div>
             </div>
             <div class="header-buttons">
-                <button class="action-chip" id="arenaToggleBtn">🌐 Arena</button>
                 <button class="action-chip" id="installBtn">📲 Install</button>
                 <button class="action-chip" id="googleSignInBtn" style="background: linear-gradient(135deg, #4285F4, #34A853); color: white; border: none;">Sign In</button>
                 <div class="user-pill" id="userPill">
@@ -549,7 +514,7 @@
         </div>
 
         <div class="live-vibe-bar">
-            <span class="vibe-label" id="vibeLabelText">⚡ VIBE:</span>
+            <span class="vibe-label">⚡ VIBE:</span>
             <div class="slider-wrapper">
                 <input type="range" id="mainRoastSlider" min="1" max="3" value="2" step="1">
             </div>
@@ -576,12 +541,10 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getDatabase, ref, push, set, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyBFZgeMPYIdpTR92DUkVFz-7h1X2xOdH3A",
           authDomain: "nova-ai-57072.firebaseapp.com",
-          databaseURL: "https://nova-ai-57072-default-rtdb.firebaseio.com",
           projectId: "nova-ai-57072",
           storageBucket: "nova-ai-57072.firebasestorage.app",
           messagingSenderId: "672770051843",
@@ -591,7 +554,6 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getDatabase(app);
         const provider = new GoogleAuthProvider();
 
         const googleSignInBtn = document.getElementById('googleSignInBtn');
@@ -635,167 +597,6 @@
         });
 
         window.getCurrentAuthToken = async () => auth.currentUser ? await auth.currentUser.getIdToken() : currentUserToken;
-
-        // --- ARENA REAL-TIME SYNC LOGIC ---
-        const chatStream = document.getElementById('chatStream');
-        const userInput = document.getElementById('userInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const arenaToggleBtn = document.getElementById('arenaToggleBtn');
-        const brandTitle = document.getElementById('brandTitle');
-        const vibeLabelText = document.getElementById('vibeLabelText');
-        const mainRoastSlider = document.getElementById('mainRoastSlider');
-
-        window.isArenaMode = false;
-        window.arenaRoomCode = null;
-        let guestNickname = localStorage.getItem('nova_guest_nick') || '';
-        let arenaMessagesUnsubscribe = null;
-
-        arenaToggleBtn.addEventListener('click', async () => {
-            window.isArenaMode = !window.isArenaMode;
-            if (window.isArenaMode) {
-                document.body.classList.add('arena-active');
-                arenaToggleBtn.textContent = "💬 Exit Arena";
-                brandTitle.textContent = "NOVA ARENA";
-                vibeLabelText.textContent = "⚡ ARENA MODE:";
-
-                let codeInput = prompt("Enter Room Code to Join, or type 'create' to start a new Arena room:", "");
-                if (!codeInput) {
-                    window.isArenaMode = false;
-                    document.body.classList.remove('arena-active');
-                    arenaToggleBtn.textContent = "🌐 Arena";
-                    brandTitle.textContent = "NOVA AI";
-                    vibeLabelText.textContent = "⚡ VIBE:";
-                    return;
-                }
-
-                codeInput = codeInput.trim().toUpperCase();
-                if (!guestNickname) {
-                    guestNickname = prompt("Enter your Nickname for Arena:", "DabanggUser") || "User";
-                    localStorage.setItem('nova_guest_nick', guestNickname);
-                }
-
-                if (codeInput === 'CREATE') {
-                    await createArenaRoom();
-                } else {
-                    window.arenaRoomCode = codeInput;
-                    listenToArenaRoom(window.arenaRoomCode);
-                }
-
-            } else {
-                document.body.classList.remove('arena-active');
-                arenaToggleBtn.textContent = "🌐 Arena";
-                brandTitle.textContent = "NOVA AI";
-                vibeLabelText.textContent = "⚡ VIBE:";
-                
-                if (arenaMessagesUnsubscribe) {
-                    arenaMessagesUnsubscribe();
-                    arenaMessagesUnsubscribe = null;
-                }
-                window.arenaRoomCode = null;
-                window.loadCurrentSession();
-            }
-        });
-
-        async function createArenaRoom() {
-            const roomCode = 'ROOM_' + Math.random().toString(36).substring(2, 8).toUpperCase();
-            const roomRef = ref(db, `arena_rooms/${roomCode}`);
-
-            try {
-                await set(roomRef, {
-                    createdAt: Date.now(),
-                    createdBy: guestNickname || "Guest",
-                    status: "active"
-                });
-
-                window.arenaRoomCode = roomCode;
-                alert(`Arena Room Created Successfully!\nShare this Code with friends: ${roomCode}`);
-                listenToArenaRoom(roomCode);
-            } catch (error) {
-                console.error("Arena room creation failed:", error);
-                alert("Room create nahi hua. Firebase Database Rules aur connection check karo.");
-                window.isArenaMode = false;
-                document.body.classList.remove('arena-active');
-                arenaToggleBtn.textContent = "🌐 Arena";
-                brandTitle.textContent = "NOVA AI";
-                vibeLabelText.textContent = "⚡ VIBE:";
-            }
-        }
-
-        function listenToArenaRoom(roomCode) {
-            if (arenaMessagesUnsubscribe) {
-                arenaMessagesUnsubscribe();
-                arenaMessagesUnsubscribe = null;
-            }
-
-            const roomMessagesRef = ref(db, `arena_rooms/${roomCode}/messages`);
-            chatStream.innerHTML = `<div class="msg-bubble ai">🌐 Connected to Live Arena Room: <strong>#${escapeHtml(roomCode)}</strong> as <em>${guestNickname}</em>. 🔥</div>`;
-
-            arenaMessagesUnsubscribe = onChildAdded(roomMessagesRef, (snapshot) => {
-                const msgData = snapshot.val();
-                if (!msgData) return;
-
-                if (msgData.sender === 'ai') {
-                    appendHtmlMessage(msgData.text || "", 'ai');
-                } else {
-                    const displayTxt = `[${msgData.user || "User"}]: ${msgData.text || ""}`;
-                    appendUserMessage(displayTxt, Array.isArray(msgData.images) ? msgData.images : []);
-                }
-                chatStream.scrollTop = chatStream.scrollHeight;
-            }, (error) => {
-                console.error("Arena listener error:", error);
-                appendMessage("⚠️ Arena sync failed. Firebase Rules check karein.", "ai");
-            });
-        }
-
-        window.sendArenaMessage = async function(text, images) {
-            const roomMessagesRef = ref(db, `arena_rooms/${window.arenaRoomCode}/messages`);
-            
-            try {
-                await push(roomMessagesRef, {
-                    user: guestNickname,
-                    text: text,
-                    images: images || [],
-                    sender: 'user',
-                    timestamp: Date.now()
-                });
-
-                let token = window.getCurrentAuthToken ? await window.getCurrentAuthToken() : null;
-                const headers = { 'Content-Type': 'application/json' };
-                if (token) headers['Authorization'] = `Bearer ${token}`;
-
-                const now = new Date();
-                const currentDateStr = now.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-                const currentTimeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-
-                const res = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify({ 
-                        messages: [{ role: 'user', content: `[Arena Room ${window.arenaRoomCode} - User ${guestNickname}]: ${text}` }],
-                        roastLevel: mainRoastSlider.value || "2",
-                        currentDate: currentDateStr,
-                        currentTime: currentTimeStr
-                    })
-                });
-
-                const data = await res.json();
-                if (data.reply) {
-                    let formattedText = escapeHtml(data.reply)
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\*(.*?)\*\*/g, '<em>$1</em>')
-                        .replace(/\n/g, '<br>');
-
-                    await push(roomMessagesRef, {
-                        user: 'NOVA AI',
-                        text: `<div>${formattedText}</div>`,
-                        sender: 'ai',
-                        timestamp: Date.now()
-                    });
-                }
-            } catch (err) {
-                console.error("Arena AI Error:", err);
-            }
-        };
     </script>
 
     <script>
@@ -942,7 +743,6 @@
         }
 
         window.loadCurrentSession = function() {
-            if (window.isArenaMode) return;
             const storageKey = getStorageKey();
             chatStream.innerHTML = '';
             window.messageHistory = [];
@@ -968,7 +768,6 @@
         }
 
         function saveMessageToStorage(role, text) {
-            if (window.isArenaMode) return;
             const storageKey = getStorageKey();
             if (!storageKey) {
                 if (!guestSessionStorage[currentSessionId]) guestSessionStorage[currentSessionId] = { title: text.substring(0, 30), messages: [] };
@@ -995,7 +794,6 @@
         sidebarBackdrop.addEventListener('click', () => { sidebarDrawer.classList.remove('open'); sidebarBackdrop.classList.remove('show'); });
 
         sidebarNewChat.addEventListener('click', () => {
-            if (window.isArenaMode) return;
             currentSessionId = 'session_' + Date.now();
             window.messageHistory = [];
             selectedImages = [];
@@ -1053,6 +851,7 @@
             const text = userInput.value.trim();
             if (!text && selectedImages.length === 0) return;
 
+            // Trigger Specific Greeting Banners based on Keys
             if (text.includes("PROJECT_ORION_99X_OVERRIDE")) {
                 devGreetingBanner.textContent = "👑 Welcome Boss Navneet Yadav! System fully online ⚡";
                 devGreetingBanner.classList.add('show');
@@ -1068,15 +867,8 @@
             }
 
             let imgs = [...selectedImages];
-            userInput.value = ''; selectedImages = []; previewContainer.innerHTML = '';
-
-            if (window.isArenaMode && window.sendArenaMessage) {
-                await window.sendArenaMessage(text, imgs);
-                scrollToBottom();
-                return;
-            }
-
             appendUserMessage(text, imgs);
+            userInput.value = ''; selectedImages = []; previewContainer.innerHTML = '';
             scrollToBottom();
 
             let parts = [];
@@ -1194,4 +986,4 @@
         userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSendMessage(); });
     </script>
 </body>
-</html>
+    </html>
